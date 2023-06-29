@@ -1,0 +1,340 @@
+<!--Main page displayed by the launcher. Basically just a javascript file with a couple of HTML tags around it.-->
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Bolt Launcher</title>
+		<script>
+			var credentials = null;
+			var pendingGameAuth = null;
+
+			// checks if `credentials` are about to expire or have already expired,
+			// and renews them using the oauth endpoint if so
+			function checkRenewCreds(url, client_id) {
+				return new Promise((resolve, reject) => {
+					// only renew if less than 30 seconds left
+					if (credentials.expiry - Date.now() < 30000) {
+						const post_data = new URLSearchParams({
+							grant_type: "refresh_token",
+							client_id: client_id,
+							refresh_token: credentials.refresh_token
+						});
+						var xml = new XMLHttpRequest();
+						xml.onreadystatechange = () => {
+							if (xml.readyState == 4 && xml.status == 200) {
+								parseCredentials(xml.response);
+								resolve(null);
+							} else if (xml.status >= 400) {
+								reject(xml.status);
+							}
+						};
+						xml.open('POST', url, true);
+						xml.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+						xml.setRequestHeader("Accept", "application/json");
+						xml.send(post_data);
+					} else {
+						resolve(null);
+					}
+				});
+			}
+
+			// parses a response from the oauth endpoint into the `credentials` var
+			function parseCredentials(str) {
+				const oauth_creds = JSON.parse(str);
+				const sections = oauth_creds.id_token.split('.');
+				if (sections.length !== 3) {
+					err(`Malformed id_token: ${sections.length} sections, expected 3`);
+				}
+				const header = JSON.parse(atob(sections[0]));
+				if (header.typ !== "JWT") {
+					err(`Bad id_token header: typ ${header.typ}, expected JWT`);
+				}
+				const payload = JSON.parse(atob(sections[1]));
+				credentials = {
+					access_token: oauth_creds.access_token,
+					id_token: oauth_creds.id_token,
+					refresh_token: oauth_creds.refresh_token,
+					sub: payload.sub,
+					login_provider: payload.login_provider || null,
+					expiry: Date.now() + (oauth_creds.expires_in * 1000)
+				};
+			}
+
+			// builds the url to be opened in the login window
+			// async because crypto.subtle.digest is async for some reason, so remember to `await`
+			async function makeLoginUrl(e) {
+				const verifier_data = new TextEncoder().encode(e.pkceCodeVerifier);
+				const digested = await crypto.subtle.digest("SHA-256", verifier_data);
+				var raw = "";
+				var bytes = new Uint8Array(digested);
+				for (var i = 0; i < bytes.byteLength; i++) {
+					raw += String.fromCharCode(bytes[i]);
+				}
+				const code_challenge = btoa(raw).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+				return e.origin.concat("/oauth2/auth?").concat(new URLSearchParams({
+					auth_method: e.authMethod,
+					login_type: e.loginType,
+					flow: e.flow,
+					response_type: "code",
+					client_id: e.clientid,
+					redirect_uri: e.redirect,
+					code_challenge: code_challenge,
+					code_challenge_method: "S256",
+					prompt: "login",
+					scope: "openid offline gamesso.token.create user.profile.read",
+					state: e.pkceState
+				}));
+			}
+
+			// builds a random PKCE verifier string using crypto.getRandomValues
+			function make_random_verifier() {
+				var t = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+				var n = new Uint32Array(43);
+				crypto.getRandomValues(n);
+				return Array.from(n, function(e) {
+					return t[e % t.length]
+				}).join("")
+			}
+
+			// builds a random PKCE state string using crypto.getRandomValues
+			function make_random_state() {
+				var t = 0;
+				var r = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+				var n = r.length - 1;
+	
+				var o = crypto.getRandomValues(new Uint8Array(12));
+				return Array.from(o).map((e) => {
+					return Math.round(e * (n - t) / 255 + t)
+				}).map((e) => { return r[e]; }).join("")
+			}
+
+			// body's onload function
+			function start(s) {
+				const state = make_random_state();
+				const verifier = make_random_verifier();
+				const client_id = atob(s.clientid);
+				var w = window.open("about:blank", "", "width=480,height=720");
+				window.addEventListener("message", (event) => {
+					if (event.origin != "https://bolt-internal" && btoa(event.origin).replaceAll('\x3d', '') != s.origin) {
+						console.log(`discarding message from origin ${event.origin}`);
+						return;
+					}
+					switch (event.data.type) {
+						case "authCode":
+							if (event.data.state == state) {
+								const exchange_url = atob(s.origin).concat("/oauth2/token");
+								const post_data = new URLSearchParams({
+									grant_type: "authorization_code",
+									client_id: atob(s.clientid),
+									code: event.data.code,
+									code_verifier: verifier,
+									redirect_uri: atob(s.redirect)
+								});
+								var xml = new XMLHttpRequest();
+
+								xml.onreadystatechange = () => {
+									if (xml.readyState == 4 && xml.status == 200) {
+										parseCredentials(xml.response);
+										switch (credentials.login_provider) {
+											case "runescape":
+												handleGameLogin(s, exchange_url, client_id);
+												break;
+											default:
+												handleStandardLogin(s, w, exchange_url, client_id, state);
+												break;
+										}
+									} else if (xml.status >= 400) {
+										w.close();
+										err(`Error: from ${exchange_url}: ${xml.status}: ${xml.response}`);
+									}
+								};
+								xml.open('POST', exchange_url, true);
+								xml.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+								xml.setRequestHeader("Accept", "application/json");
+								xml.send(post_data);
+
+							}
+							break;
+						case "initAuth":
+							console.log(`message: init auth: ${event.data.auth_method}`);
+							break;
+						case "externalUrl":
+							console.log(`message: external url: ${event.data.url}`);
+							break;
+						case "gameSessionServerAuth":
+							if (pendingGameAuth && pendingGameAuth.state == event.data.state) {
+								w.close();
+								const sections = event.data.id_token.split('.');
+								if (sections.length !== 3) {
+									err(`Malformed id_token: ${sections.length} sections, expected 3`);
+								}
+								const header = JSON.parse(atob(sections[0]));
+								if (header.typ !== "JWT") {
+									err(`Bad id_token header: typ ${header.typ}, expected JWT`);
+								}
+								const payload = JSON.parse(atob(sections[1]));
+								if (atob(payload.nonce) !== pendingGameAuth.nonce) {
+									err("Incorrect nonce in id_token");
+								}
+								const sessions_url = atob(s.auth_api).concat("/sessions");
+								var xml = new XMLHttpRequest();
+								xml.onreadystatechange = () => {
+									if (xml.readyState == 4 && xml.status == 200) {
+										const accounts_url = atob(s.auth_api).concat("/accounts");
+										const session_id = JSON.parse(xml.response).sessionId;
+										var xml2 = new XMLHttpRequest();
+										xml2.onreadystatechange = () => {
+											if (xml2.readyState == 4 && xml2.status == 200) {
+												pendingGameAuth.account_info_promise.then((account_info) => {
+													var select_str = "";
+													JSON.parse(xml2.response).forEach((acc) => {
+														if (acc.displayName) {
+															select_str += `<option value="${acc.accountId}" name="${escape(acc.displayName)}">${escape(acc.displayName)}</option>`;
+														} else {
+															select_str += `<option value="${acc.accountId}">(no name set)</option>`;
+														}
+													});
+													document.getElementById("root").innerHTML = `
+														<p>Currently logged in as <b>${account_info.displayName}</b>#${account_info.suffix}</p>
+														<p><label for="accounts">Account:</label> <select name="accounts" id="accounts">${select_str}</select></p>
+														<button onclick='const e = document.getElementById("accounts"); const acc_id = e.value;
+														const acc_name = e.options[e.selectedIndex].getAttribute("name");
+														launchRS3Flatpak(null, null, unescape("${escape(session_id)}"), acc_id, acc_name)'>Launch RS3 Flatpak</button>
+													`;
+													pendingGameAuth = null;
+												});
+											} else if (xml2.status >= 400) {
+												err(`Error: from ${accounts_url}: ${xml2.status}: ${xml2.response}`);
+											}
+										};
+										xml2.open('GET', accounts_url, true);
+										xml2.setRequestHeader("Accept", "application/json");
+										xml2.setRequestHeader("Authorization", "Bearer ".concat(session_id));
+										xml2.send();
+									} else if (xml.status >= 400) {
+										err(`Error: from ${sessions_url}: ${xml.status}: ${xml.response}`);
+									}
+								};
+								xml.open('POST', sessions_url, true);
+								xml.setRequestHeader("Content-Type", "application/json");
+								xml.setRequestHeader("Accept", "application/json");
+								xml.send(`{"idToken": "${event.data.id_token}"}`);
+							}
+							break;
+						default:
+							console.log("unknown message type: ".concat(event.data.type));
+							break;
+					}
+				});
+				makeLoginUrl({
+					origin: atob(s.origin),
+					redirect: atob(s.redirect),
+					authMethod: "",
+					loginType: "",
+					clientid: client_id,
+					flow: "launcher",
+					pkceState: state,
+					pkceCodeVerifier: verifier,
+				}).then((e) => { w.location.replace(e); });
+			}
+
+			// called when login was successful, but with absent or unrecognised login_provider
+			function handleStandardLogin(s, w, refresh_url, client_id, state) {
+				if (pendingGameAuth !== null) {
+					throw new Error("game auth flow started while another was already pending");
+				}
+				const nonce = crypto.randomUUID();
+				pendingGameAuth = {
+					state: state,
+					nonce: nonce,
+					account_info_promise: new Promise((resolve, reject) => {
+						const url = atob(s.api).concat("/users/").concat(credentials.sub).concat("/displayName");
+						var xml = new XMLHttpRequest();
+						xml.onreadystatechange = () => {
+							if (xml.readyState == 4 && xml.status == 200) {
+								resolve(JSON.parse(xml.response));
+							} else if(xml.status >= 400) {
+								reject(xml.status);
+							}
+						};
+						xml.open('GET', url, true);
+						xml.setRequestHeader("Authorization", "Bearer ".concat(credentials.access_token));
+						xml.send();
+					})
+				};
+				w.location.href = atob(s.origin).concat("/oauth2/auth?").concat(new URLSearchParams({
+					id_token_hint: credentials.id_token,
+					nonce: btoa(nonce),
+					prompt: "consent",
+					redirect_uri: "http://localhost",
+					response_type: "id_token code",
+					state: state,
+					client_id: "1fddee4e-b100-4f4e-b2b0-097f9088f9d2",
+					scope: "openid offline"
+				}));
+			}
+
+			// called after successful login using a game account as the login_provider
+			function handleGameLogin(s, refresh_url, client_id) {
+				const auth_url = atob(s.profile_api).concat("/profile");
+				var xml = new XMLHttpRequest();
+				xml.onreadystatechange = () => {
+					if (xml.readyState == 4 && xml.status == 200) {
+						const name_info = JSON.parse(xml.response);
+						const display_name = name_info.displayNameSet ? name_info.displayName : "";
+						const display_name_html = name_info.displayNameSet ? "<b>".concat(name_info.displayName).concat("</b>") : "<i>(no name set)</i>";
+						document.getElementById("root").innerHTML = `
+							<p>Currently logged in with a game account</p>
+							<p>display name: ${display_name_html}</p>
+							<button onclick='getShieldTokens(atob("${s.shield_url}"), unescape("${escape(display_name)}"), unescape("${escape(refresh_url)}"),
+							unescape("${escape(client_id)}")).then((e) => { launchRS3Flatpak(e.access_token, e.refresh_token, null, null,
+							"${name_info.displayNameSet ? name_info.displayName : null}");
+							})'>Launch Flatpak RS3</button>
+						`;
+					}
+				};
+				xml.open('GET', auth_url, true);
+				xml.setRequestHeader("Authorization", "Bearer ".concat(credentials.id_token));
+				xml.send();
+			}
+
+			// use oauth creds to get a response from the "shield" endpoint
+			function getShieldTokens(url, display_name, refresh_url, client_id) {
+				return new Promise((resolve, reject) => {
+					checkRenewCreds(refresh_url, client_id).then(() => {
+						var xml = new XMLHttpRequest();
+						xml.open('POST', url, true);
+						xml.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+						xml.setRequestHeader("Authorization", "Basic Y29tX2phZ2V4X2F1dGhfZGVza3RvcF9yczpwdWJsaWM=");
+						xml.onreadystatechange = () => {
+							if (xml.readyState == 4 && xml.status == 200) {
+								resolve(JSON.parse(xml.response));
+							} else if (xml.status >= 400) {
+								reject(xml.status);
+							}
+						};
+						xml.send(new URLSearchParams({
+							token: credentials.access_token,
+							grant_type: "token_exchange",
+							scope: "gamesso.token.create"
+						}));
+					});
+				});
+			}
+
+			// launch RS3 via flatpak using the given env variables
+			function launchRS3Flatpak(jx_access_token, jx_refresh_token, jx_session_id, jx_character_id, jx_display_name) {
+				console.log(`launchRS3Flatpak(${jx_access_token}, ${jx_refresh_token}, ${jx_session_id}, ${jx_character_id}, ${jx_display_name})`);
+			}
+
+			// sets body text to an error message, then throws that error message
+			function err(str) {
+				document.getElementById("root").innerHTML = `<p>${str}</p>`;
+				throw new Error(str);
+			}
+		</script>
+	</head>
+	<body style="overflow:hidden" onload="start(window.s())">
+		<div id="root" />
+	</body>
+</html>
