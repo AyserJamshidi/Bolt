@@ -37,7 +37,7 @@ If you just want to get Bolt installed then you don't need to build it from sour
 But if you do want to build from source, the first thing you should know is that Bolt is based on [Chromium Embedded Framework](https://bitbucket.org/chromiumembedded/cef) (CEF), so to build it, you'll first need either to [build](https://bitbucket.org/chromiumembedded/cef/wiki/MasterBuildQuickStart.md) or [download](https://adamcake.com/cef) a binary distribution of CEF.
 
 Clone this repository with submodules:
-- `git clone --recurse-submodules https://github.com/Adamcake/Bolt.git`
+- `git clone --recurse-submodules https://codeberg.org/Adamcake/Bolt.git`
 
 If you accidentally cloned without submodules (no `modules` directory), you can checkout submodules like so:
 - `git submodule update --init --recursive`
@@ -51,7 +51,7 @@ If building on Linux, the following are required:
 - libarchive development libraries (`libarchive-devel` or `libarchive-dev` on most package managers)
 - LuaJIT development libraries (`luajit-devel` or `luajit-dev` on most package managers) (OPTIONAL - only needed if you want to build the plugin library)
 
-OPTIONAL: build the frontend. Bolt's html frontend is already committed to this repo in `app/dist`, so building it yourself isn't necessary. If you want to build it from source anyway then see [app/README.md](https://github.com/Adamcake/Bolt/tree/master/app#app) for full details on how this build system works, but here's the short version:
+OPTIONAL: build the frontend. Bolt's html frontend is already committed to this repo in `app/dist`, so building it yourself isn't necessary. If you want to build it from source anyway then see [app/README.md](https://codeberg.org/Adamcake/Bolt/src/branch/master/app#app) for full details on how this build system works, but here's the short version:
 - `cd app/`
 - `npm install -g bun` (needs root access on Linux)
 - `bun install`
@@ -90,7 +90,7 @@ Lastly, here are some optional settings which may be useful if you're integratin
 ### Windows
 
 Windows builds have only been tested using Visual Studio 2022 (a.k.a. Visual Studio 17) in Release mode, per recommendations by chromium/cef. Other configurations may work but have not been tested.
-- optional: if you want to build the plugin library, start by cloning [LuaJIT](https://github.com/LuaJIT/LuaJIT) and build it by running msvcbuild.bat.
+- optional: if you want to build the plugin library, start by cloning [LuaJIT](https://luajit.org/git/luajit.git) and build it by running msvcbuild.bat.
 - `cmake -S . -B build -G "Visual Studio 17" -D CMAKE_BUILD_TYPE=Release`
   - note: specify `-D BOLT_CEF_INSTALLDIR=[your filepath]` to specify the install location when running the final command. Must be an absolute path. The default is `C:\bolt-launcher\`.
   - note: depending on whether you want the plugin library, you need to specify either `-D BOLT_LUAJIT_DIR=path/to/luajit/src/`, where the path is the location of lua51.dll and the various lua headers, or `-D BOLT_SKIP_LIBRARIES=1`
@@ -136,7 +136,7 @@ When doing the initial cmake setup step, the following options exist which you m
 
 ## Contributing
 
-There's not much to say here except that I have fairly high standards, so don't give me code that's messy or unfinished. Use a development environment that supports [editorconfig](https://editorconfig.org/) before starting work. If committing to the frontend UI then see [app/README.md](https://github.com/Adamcake/Bolt/tree/master/app#app), especially the Linting & Formatting section, for some UI-specific guidelines. Follow the general etiquette of git, i.e. commit messages 50 characters maximum, all changes in a commit must be relevant to the commit, and all commits in a PR must be relevant to the PR.
+There's not much to say here except that I have fairly high standards, so don't give me code that's messy or unfinished. Use a development environment that supports [editorconfig](https://editorconfig.org/) before starting work. If committing to the frontend UI then see [app/README.md](https://codeberg.org/Adamcake/Bolt/src/branch/master/app#app), especially the Linting & Formatting section, for some UI-specific guidelines. Follow the general etiquette of git, i.e. commit messages 50 characters maximum, all changes in a commit must be relevant to the commit, and all commits in a PR must be relevant to the PR.
 
 ## Credit
 
