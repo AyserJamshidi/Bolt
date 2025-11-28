@@ -123,7 +123,6 @@
 			<label class="flex flex-col">
 				<span class="text-sm">Game Client</span>
 				<select
-					id="game_client_select"
 					class="w-52 cursor-pointer rounded-lg border-2 border-slate-300 bg-inherit p-2 text-inherit duration-200 hover:opacity-75 dark:border-slate-800"
 					bind:value={$config.selected.client}
 				>
@@ -147,7 +146,6 @@
 		<label class="flex flex-col">
 			<span class="text-sm">Character</span>
 			<select
-				id="character_select"
 				class="mx-auto w-52 cursor-pointer rounded-lg border-2 border-slate-300 bg-inherit p-2 text-inherit duration-200 hover:opacity-75 dark:border-slate-800"
 				disabled={!$initialized || $config.selected.user_id === null}
 				bind:value={selectedAccountId}
