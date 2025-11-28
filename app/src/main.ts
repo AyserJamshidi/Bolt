@@ -114,6 +114,7 @@ function addMessageListeners(): void {
 					logger.info(`Added new user '${loginResult.value.user.displayName}'`);
 				}
 				BoltService.saveCredentials();
+				BoltService.saveConfig(false);
 				AuthService.pendingLoginWindow = null;
 				tokens = null;
 				break;

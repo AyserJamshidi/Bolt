@@ -50,6 +50,8 @@
 		if (!selectedAccountId) {
 			return logger.warn('Please select a character from the select menu.');
 		}
+		BoltService.saveConfig();
+
 		const session = BoltService.findSession($config.selected.user_id);
 		if (!session) return logger.warn('Unable to launch game, session was not found.');
 		const { session_id } = session;
@@ -84,17 +86,12 @@
 		}
 	}
 
-	function handleAccountChange(e: Event) {
-		const value = (e.target as HTMLSelectElement).value;
+	function handleAccountChange() {
 		if (!selectedUserId) return;
-		const details = $config.userDetails[selectedUserId];
-		if (details) {
-			details.account_id = value;
-			$config.userDetails[selectedUserId] = details;
+		if (selectedAccountId) {
+			$config.userDetails[selectedUserId] = { account_id: selectedAccountId };
 		} else {
-			$config.userDetails[selectedUserId] = {
-				account_id: value
-			};
+			delete $config.userDetails[selectedUserId];
 		}
 	}
 </script>
@@ -153,7 +150,7 @@
 				id="character_select"
 				class="mx-auto w-52 cursor-pointer rounded-lg border-2 border-slate-300 bg-inherit p-2 text-inherit duration-200 hover:opacity-75 dark:border-slate-800"
 				disabled={!$initialized || $config.selected.user_id === null}
-				value={selectedAccountId}
+				bind:value={selectedAccountId}
 				onchange={handleAccountChange}
 			>
 				<option value={undefined} disabled class="dark:bg-slate-900">Select an account</option>
