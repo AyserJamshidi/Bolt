@@ -41,7 +41,7 @@
 		if (canSelfClose) close();
 	}}
 	onmousedown={(e: MouseEvent) => {
-		if (dialog === (e.target as Node)) close();
+		if (canSelfClose && dialog === (e.target as Node)) close();
 	}}
 	class:dark={darkTheme}
 	class="{className} backdrop max-h-[90%] max-w-[90%] overflow-auto rounded-xl text-inherit focus-visible:outline-none"
