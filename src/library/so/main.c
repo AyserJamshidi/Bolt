@@ -608,36 +608,39 @@ static uint8_t _bolt_handle_xcb_event(xcb_connection_t* c, xcb_generic_event_t* 
     // comments here are based on what event masks the game normally sets on each window
     const uint8_t response_type = e->response_type & 0b01111111;
     switch (response_type) {
+        // in the following list of events, SDL will usually use the XCB_INPUT events if xinput is
+        // available on the system, otherwise it can only use the normal xcb events.
+        // but there have been some cases where it will get the normal events instead of xinput.
         case XCB_GE_GENERIC: {
             const xcb_ge_generic_event_t* const event = (const xcb_ge_generic_event_t* const)e;
             if (event->extension != XINPUTEXTENSION) break;
             switch (event->event_type) {
-                case XCB_INPUT_BUTTON_PRESS: { // when pressing a mouse button that's received by the game window (SDL3 only)
+                case XCB_INPUT_BUTTON_PRESS: { // when pressing a mouse button that's received by the game window
                     const xcb_input_button_press_event_t* event = (xcb_input_button_press_event_t*)e;
                     if (event->event != main_window_xcb) return true;
                     return handle_buttonpress_event(event->event_x >> 16, event->event_y >> 16, event->detail, event->mods.effective);
                 }
-                case XCB_INPUT_BUTTON_RELEASE: { // when releasing a mouse button that's received by the game window (SDL3 only)
+                case XCB_INPUT_BUTTON_RELEASE: { // when releasing a mouse button that's received by the game window
                     const xcb_input_button_release_event_t* event = (xcb_input_button_release_event_t*)e;
                     if (event->event != main_window_xcb) return true;
                     return handle_buttonrelease_event(event->event_x >> 16, event->event_y >> 16, event->detail, event->mods.effective);
                 }
-                case XCB_INPUT_MOTION: { // when mouse moves (not drag) inside the game window
+                case XCB_INPUT_MOTION: { // when mouse moves inside the game window
                     const xcb_input_motion_event_t* event = (xcb_input_motion_event_t*)e;
                     if (event->event != main_window_xcb) return true;
                     return handle_mouse_event(event->event_x >> 16, event->event_y >> 16, event->mods.effective, offsetof(struct WindowPendingInput, mouse_motion), offsetof(struct WindowPendingInput, mouse_motion_event), GRAB_TYPE_NONE);
                 }
-                case XCB_INPUT_ENTER: { // when mouse moves into this window, having previously been in another window (SDL3 only)
+                case XCB_INPUT_ENTER: { // when mouse moves into this window, having previously been in another window
                     const xcb_input_enter_event_t* event = (xcb_input_enter_event_t*)e;
                     if (event->event != main_window_xcb) return true;
                     return handle_mouse_event(event->event_x >> 16, event->event_y >> 16, event->mods.effective, offsetof(struct WindowPendingInput, mouse_motion), offsetof(struct WindowPendingInput, mouse_motion_event), GRAB_TYPE_NONE);
                 }
-                case XCB_INPUT_LEAVE: { // when mouse moves into another window, having previously been in this window (SDL3 only)
+                case XCB_INPUT_LEAVE: { // when mouse moves into another window, having previously been in this window
                     const xcb_input_leave_event_t* event = (xcb_input_leave_event_t*)e;
                     if (event->event != main_window_xcb) return true;
                     return handle_mouseleave_event(event->event_x >> 16, event->event_y >> 16, event->mods.effective);
                 }
-                case XCB_INPUT_RAW_MOTION: // when mouse moves (not drag) anywhere globally on the PC
+                case XCB_INPUT_RAW_MOTION: // when mouse moves anywhere globally on the PC
                 case XCB_INPUT_RAW_BUTTON_PRESS: // when pressing a mouse button anywhere globally on the PC
                 case XCB_INPUT_RAW_BUTTON_RELEASE: // when releasing a mouse button anywhere globally on the PC
                     break;
@@ -647,17 +650,17 @@ static uint8_t _bolt_handle_xcb_event(xcb_connection_t* c, xcb_generic_event_t* 
             }
             break;
         }
-        case XCB_BUTTON_PRESS: { // when pressing a mouse button that's received by the game window (SDL2 only)
+        case XCB_BUTTON_PRESS: { // when pressing a mouse button that's received by the game window
             const xcb_button_press_event_t* event = (xcb_button_release_event_t*)e;
             if (event->event != main_window_xcb) return true;
             return handle_buttonpress_event(event->event_x, event->event_y, event->detail, event->state);
         }
-        case XCB_BUTTON_RELEASE: { // when releasing a mouse button for which the press was received by the game window (SDL2 only)
+        case XCB_BUTTON_RELEASE: { // when releasing a mouse button for which the press was received by the game window
             const xcb_button_release_event_t* event = (xcb_button_release_event_t*)e;
             if (event->event != main_window_xcb) return true;
             return handle_buttonrelease_event(event->event_x, event->event_y, event->detail, event->state);
         }
-        case XCB_MOTION_NOTIFY: { // when mouse moves while dragging from inside the game window
+        case XCB_MOTION_NOTIFY: { // when mouse moves inside the game window
             const xcb_motion_notify_event_t* event = (xcb_motion_notify_event_t*)e;
             if (event->event != main_window_xcb) return true;
             return handle_mouse_event(event->event_x, event->event_y, event->state, offsetof(struct WindowPendingInput, mouse_motion), offsetof(struct WindowPendingInput, mouse_motion_event), GRAB_TYPE_NONE);
