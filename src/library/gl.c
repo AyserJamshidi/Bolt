@@ -364,7 +364,7 @@ static void drawelements_handle_billboard(GLsizei count, const unsigned short* i
 static void drawelements_handle_2d_renderminimap(const struct GLTexture2D* tex, const GLfloat* projection_matrix, struct GLContext* c, const struct GLAttrBinding* attributes);
 static void drawelements_handle_2d_minimapterrain(const unsigned short* indices, const struct GLTexture2D* tex, const GLfloat* projection_matrix, struct GLContext* c, const struct GLAttrBinding* attributes);
 static void drawelements_handle_2d_bigicon(const unsigned short* indices, struct GLTexture2D* tex, const GLfloat* projection_matrix, struct GLContext* c, const struct GLAttrBinding* attributes);
-static void drawelements_handle_2d_normal(GLsizei count, const unsigned short* indices, struct GLTexture2D* tex, const GLfloat* projection_matrix, struct GLContext* c, const struct GLAttrBinding* attributes, void (*handler_2d)(const struct RenderBatch2D*), void (*handler_icon)(const struct RenderIconEvent*));
+static void drawelements_handle_2d_normal(GLsizei count, const unsigned short* indices, struct GLTexture2D* tex, const GLfloat* projection_matrix, struct GLContext* c, const struct GLAttrBinding* attributes, void (*handler_2d)(const struct RenderBatch2D*), void (*handler_icon)(const struct RenderIconEvent*), uint8_t is_interface_scaled);
 static void drawelements_handle_3d_silhouette(struct GLContext* c);
 static void drawelements_handle_3d_normal(GLsizei count, const unsigned short* indices, struct GLContext* c, const struct GLAttrBinding* attributes);
 static void drawelements_handle_3d_iconrender(GLsizei count, const unsigned short* indices, struct GLContext* c, const struct GLAttrBinding* attributes, GLint draw_tex);
@@ -2341,7 +2341,7 @@ static void drawelements_handle_2d(GLsizei count, const unsigned short* indices,
     } else {
         void (*handler_2d)(const struct RenderBatch2D*) = is_minimap2d_target ? _bolt_plugin_handle_minimaprender2d : _bolt_plugin_handle_render2d;
         void (*handler_icon)(const struct RenderIconEvent*) = _bolt_plugin_handle_rendericon;
-        drawelements_handle_2d_normal(count, indices, tex, projection_matrix, c, attributes, handler_2d, handler_icon);
+        drawelements_handle_2d_normal(count, indices, tex, projection_matrix, c, attributes, handler_2d, handler_icon, !is_minimap2d_target);
     }
 }
 
@@ -2642,7 +2642,7 @@ static void drawelements_handle_2d_bigicon(const unsigned short* indices, struct
 }
 
 // takes a plugin-level handler for render2d and a handler for rendericon, and may call each of them one or more times
-static void drawelements_handle_2d_normal(GLsizei count, const unsigned short* indices, struct GLTexture2D* tex, const GLfloat* projection_matrix, struct GLContext* c, const struct GLAttrBinding* attributes, void (*handler_2d)(const struct RenderBatch2D*), void (*handler_icon)(const struct RenderIconEvent*)) {
+static void drawelements_handle_2d_normal(GLsizei count, const unsigned short* indices, struct GLTexture2D* tex, const GLfloat* projection_matrix, struct GLContext* c, const struct GLAttrBinding* attributes, void (*handler_2d)(const struct RenderBatch2D*), void (*handler_icon)(const struct RenderIconEvent*), uint8_t is_interface_scaled) {
     struct GLPluginDrawElementsVertex2DUserData vertex_userdata;
     vertex_userdata.c = c;
     vertex_userdata.indices = indices;
@@ -2662,6 +2662,8 @@ static void drawelements_handle_2d_normal(GLsizei count, const unsigned short* i
     batch.screen_height = vertex_userdata.screen_height;
     batch.index_count = count;
     batch.vertices_per_icon = 6;
+    batch.is_interface_scaled = is_interface_scaled && gl_width != batch.screen_width;
+    batch.interface_scale = (float)gl_width / (float)batch.screen_width;
     batch.vertex_functions.userdata = &vertex_userdata;
     batch.vertex_functions.xy = glplugin_drawelements_vertex2d_xy;
     batch.vertex_functions.atlas_details = glplugin_drawelements_vertex2d_atlas_details;

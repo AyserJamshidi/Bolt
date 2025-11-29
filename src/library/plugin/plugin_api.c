@@ -818,13 +818,38 @@ static int api_batch2d_targetsize(lua_State* state) {
     return 2;
 }
 
-static int api_batch2d_vertexxy(lua_State* state) {
-    const struct RenderBatch2D* batch = require_self_userdata(state, "vertexxy");
+static int api_batch2d_targetscale(lua_State* state) {
+    const struct RenderBatch2D* batch = require_self_userdata(state, "targetscale");
+    if (batch->is_interface_scaled) {
+        lua_pushnumber(state, batch->interface_scale);
+    } else {
+        lua_pushinteger(state, 1);
+    }
+    return 1;
+}
+
+static int api_batch2d_vertextargetxy(lua_State* state) {
+    const struct RenderBatch2D* batch = require_self_userdata(state, "vertextargetxy");
     const lua_Integer index = luaL_checkinteger(state, 2);
     int32_t xy[2];
     batch->vertex_functions.xy(index - 1, batch->vertex_functions.userdata, xy);
     lua_pushinteger(state, xy[0]);
     lua_pushinteger(state, xy[1]);
+    return 2;
+}
+
+static int api_batch2d_vertexscaledxy(lua_State* state) {
+    const struct RenderBatch2D* batch = require_self_userdata(state, "vertexscaledxy");
+    const lua_Integer index = luaL_checkinteger(state, 2);
+    int32_t xy[2];
+    batch->vertex_functions.xy(index - 1, batch->vertex_functions.userdata, xy);
+    if (batch->is_interface_scaled) {
+        lua_pushnumber(state, xy[0] * batch->interface_scale);
+        lua_pushnumber(state, xy[1] * batch->interface_scale);
+    } else {
+        lua_pushinteger(state, xy[0]);
+        lua_pushinteger(state, xy[1]);
+    }
     return 2;
 }
 
@@ -2331,7 +2356,9 @@ static struct ApiFuncTemplate render2d_functions[] = {
     BOLTFUNC(vertexcount, batch2d),
     BOLTFUNC(verticesperimage, batch2d),
     BOLTFUNC(targetsize, batch2d),
-    BOLTFUNC(vertexxy, batch2d),
+    BOLTFUNC(targetscale, batch2d),
+    BOLTFUNC(vertextargetxy, batch2d),
+    BOLTFUNC(vertexscaledxy, batch2d),
     BOLTFUNC(vertexatlasdetails, batch2d),
     BOLTFUNC(vertexuv, batch2d),
     BOLTFUNC(vertexcolour, batch2d),
@@ -2339,6 +2366,7 @@ static struct ApiFuncTemplate render2d_functions[] = {
     BOLTFUNC(texturesize, batch2d),
     BOLTFUNC(texturecompare, batch2d),
     BOLTFUNC(texturedata, batch2d),
+    BOLTALIAS(vertextargetxy, vertexxy, batch2d),
     BOLTALIAS(vertexcolour, vertexcolor, batch2d),
 };
 

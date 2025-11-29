@@ -408,6 +408,8 @@ struct RenderBatch2D {
     uint32_t screen_height;
     uint32_t index_count;
     uint32_t vertices_per_icon;
+    uint8_t is_interface_scaled;
+    float interface_scale;
     struct Vertex2DFunctions vertex_functions;
     struct TextureFunctions texture_functions;
 };

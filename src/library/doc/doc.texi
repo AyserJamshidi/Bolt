@@ -2760,12 +2760,53 @@ to the size of the inner area of the game window, given by
 scaling other than 100%, it will be bigger or smaller than that area,
 proportionally.
 
-@node batch2d-vertexxy
+@node batch2d-targetscale
+@subsection targetscale
+
+Returns the interface scaling being applied to this render. For example,
+if the interface scaling is set to 135%, this function will return 1.35.
+For minimap2d handlers this function will always return 1.
+
+@node vertexxy
 @subsection vertexxy
+
+Alias for @ref{batch2d-vertextargetxy}
+
+@node batch2d-vertextargetxy
+@subsection vertextargetxy
+
+Given an index of a vertex in a batch, returns its X and Y position on
+the target surface, in pixel coordinates. As with all screen coordinates
+in the Bolt API, this is relative to the top-left pixel of the screen.
+
+As explained in @ref{batch2d-targetsize}, the size of the target surface
+won't necessarily match the screen size. If interface scaling is in use,
+the target surface will be proportionally bigger or smaller than the
+actual game window. This function provides precise pixel locations
+independent of interface scaling, which are useful for distance
+comparisons. If a plugin needs to convert to actual screen coordinates
+to support interface scaling, it should use @ref{batch2d-vertexscaledxy}
+instead.
+
+For a minimap2d handler, vertextargetxy and vertexscaledxy are the same
+function.
+
+@node batch2d-vertexscaledxy
+@subsection vertexscaledxy
 
 Given an index of a vertex in a batch, returns its X and Y position on
 the screen, in pixel coordinates. As with all screen coordinates in the
 Bolt API, this is relative to the top-left pixel of the screen.
+
+This is the same as @ref{batch2d-vertextargetxy} except the results are
+multiplied by the player's interface scaling setting (given by
+@ref{batch2d-targetscale}) to give actual screen coordinates. As a
+result, the values are less precise and are not necessarily whole
+numbers, but if a plugin wants to draw an overlay above a vertex, this
+is the correct function to use.
+
+For a minimap2d handler, vertextargetxy and vertexscaledxy are the same
+function.
 
 @node batch2d-vertexatlasdetails
 @subsection vertexatlasdetails
