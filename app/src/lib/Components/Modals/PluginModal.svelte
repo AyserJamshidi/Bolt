@@ -14,15 +14,27 @@
 	import { clientList } from '$lib/Util/Store';
 	import { GlobalState } from '$lib/State/GlobalState';
 
+  const { config } = GlobalState
+
 	let modal: Modal;
 
 	let messageText: string | null = $state(null);
 	let messageIsError: boolean = $state(false);
-	let pluginList: { [key: string]: PluginMeta } = $state(bolt.pluginConfig);
+  let pluginList: { [key: string]: PluginMeta } = $state(bolt.pluginConfig);
+	let accounts = $derived(BoltService.findSession($config.selected.user_id)?.accounts ?? []);
+
 
 	const platformFileSep: string = bolt.platform === 'windows' ? '\\' : '/';
 	const configFileName: string = 'bolt.json';
 	const sepConfigFileName: string = platformFileSep.concat(configFileName);
+
+  function getAccountNameById(id?: string): string {
+    if (!id)  return unnamedClientName
+
+    return accounts.find(v => {
+      return v.accountId == id
+    })?.displayName || unnamedClientName
+  }
 
 	export function open() {
 		showURLEntry = false;
@@ -263,6 +275,54 @@
 			}
 		});
 	});
+
+  // Track which clients we've already auto-started plugins for
+  let autostartedClients = new Set<number>();
+
+	const startPlugin = async (client: number, id: string, path: string | null, main: string) => {
+		const params: Record<string, string> = { client: client.toString(), id, main };
+		if (path) {
+			const pathWithCorrectSeps = path.replaceAll('\\', '/');
+			params.path = pathWithCorrectSeps.endsWith('/') ? pathWithCorrectSeps : pathWithCorrectSeps + '/';
+		}
+		const response = await fetch('/start-plugin?' + new URLSearchParams(params).toString());
+		requestNewClientListPromise()
+		if (!response.ok) {
+			setMessageError(`couldn't start plugin: ${response.status}: ${response.statusText}`);
+		}
+	};
+
+  // Watch for new clients and autostart their plugins
+  $effect(() => {
+    $clientList.forEach(client => {
+      if (autostartedClients.has(client.uid)) return;
+      if (!client.identity || !bolt.autostart[client.identity]) return;
+      
+      const pluginsToStart = bolt.autostart[client.identity];
+      if (pluginsToStart.length === 0) return;
+      
+      autostartedClients.add(client.uid);
+      
+      // TBD: adding a timeout to wait for client to be read
+      setTimeout(async () => {
+      await Promise.all(
+        pluginsToStart.map(async (pluginId) => {
+          const meta = pluginList[pluginId];
+          if (meta) {
+            const config = await getPluginConfigPromiseByID(pluginId);
+            await startPlugin(client.uid, pluginId, meta.path || null, config?.main ?? "main.lua");
+          } else {
+            console.warn(`Autostart plugin ${pluginId} not found in plugin list`);
+          }
+        })
+      );
+    }, 2000);
+    });
+    
+    // Clean up Set when clients disconnect
+    const currentClientIds = new Set($clientList.map(c => c.uid));
+    autostartedClients = new Set([...autostartedClients].filter(id => currentClientIds.has(id)));
+  });
 </script>
 
 <Modal bind:this={modal} class="h-[90%] w-[90%] text-center" onClose={close}>
@@ -292,7 +352,7 @@
 					? 'border-black bg-blue-500 text-black'
 					: 'border-blue-500 text-black dark:text-white'} hover:opacity-75"
 			>
-				{client.identity || unnamedClientName}
+				{getAccountNameById(client.identity)}
 			</button>
 			<br />
 		{/each}
@@ -365,10 +425,12 @@
 				<!-- Client plugin list -->
 				<PluginList
 					clientId={selectedClientId}
+          accountID={$clientList.find(c => c.uid === selectedClientId)?.identity}
 					{pluginList}
 					activePlugins={$clientList.find((c) => c.uid === selectedClientId)?.plugins ?? []}
 					onError={setMessageError}
 					onRefresh={() => requestNewClientListPromise()}
+          {startPlugin}
 				/>
 			{/if}
 		{/if}

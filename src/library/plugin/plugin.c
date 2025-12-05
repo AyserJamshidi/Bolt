@@ -257,17 +257,16 @@ char u4_to_char(uint8_t u4) {
 void _bolt_plugin_init(const struct PluginManagedFunctions* functions) {
     _bolt_plugin_ipc_init(&fd);
 
-    const char* display_name = getenv("JX_DISPLAY_NAME");
-    if (display_name && *display_name) {
-        size_t name_len = strlen(display_name);
+    const char* character_id = getenv("JX_CHARACTER_ID");
+    if (character_id && *character_id) {
+        size_t id_len = strlen(character_id);
         const enum BoltIPCMessageTypeToHost msg_type = IPC_MSG_IDENTIFY;
-        const struct BoltIPCIdentifyHeader header = { .name_length = name_len };
+        const struct BoltIPCIdentifyHeader header = { .id_length = id_len };
         _bolt_ipc_send(fd, &msg_type, sizeof(msg_type));
         _bolt_ipc_send(fd, &header, sizeof(header));
-        _bolt_ipc_send(fd, display_name, name_len);
+        _bolt_ipc_send(fd, character_id, id_len);
     }
 
-    const char* character_id = getenv("JX_CHARACTER_ID");
     SHA256_CTX ctx;
     unsigned char hash[SHA256_BLOCK_SIZE];
     sha256_init(&ctx);

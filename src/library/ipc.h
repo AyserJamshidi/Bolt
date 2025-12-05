@@ -58,7 +58,7 @@ enum BoltIPCMessageTypeToClient {
 
 /// Header for BoltIPCMessageTypeToHost::IPC_MSG_IDENTIFY
 struct BoltIPCIdentifyHeader {
-    uint8_t name_length;
+    uint8_t id_length;
 };
 
 /// Header for BoltIPCMessageTypeToHost::IPC_MSG_CLIENT_STOPPED_PLUGINS

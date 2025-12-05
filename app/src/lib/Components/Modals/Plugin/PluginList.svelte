@@ -2,16 +2,29 @@
 	import PluginEntry from './PluginEntry.svelte';
 	import type { PluginMeta, PluginConfig } from '$lib/Util/Interfaces';
 	import type { ClientInfo } from '$lib/Util/Store'; 
+	import { GlobalState } from '$lib/State/GlobalState';
+	import { bolt } from '$lib/State/Bolt';
+	import { BoltService } from '$lib/Services/BoltService';
+
 
 	interface Props {
 		clientId: number;
+    accountID?: string;
 		pluginList: { [key: string]: PluginMeta };
 		activePlugins: ClientInfo['plugins'];
+    startPlugin: (clientId: number, pluginId: string, path: string | null, main: string) => void
 		onError: (msg: string) => void;
 		onRefresh: () => void;
 	}
 
-	let { clientId, pluginList, activePlugins, onError, onRefresh }: Props = $props();
+	let { clientId, accountID, pluginList, activePlugins, startPlugin, onError, onRefresh } : Props = $props();
+
+  let autostart = $state(bolt.autostart ?? {})
+
+  const isPluginAutostart = (pluginId: string): boolean => {
+    if (!accountID || !autostart) return false;
+    return autostart[accountID]?.includes(pluginId) ?? false;
+  };
 
 	// Map to store plugin configs
 	let pluginConfigs: Map<string, PluginConfig | null> = $state(new Map());
@@ -44,8 +57,38 @@
 
 	const getActivePluginUid = (pluginId: string): number | null => {
 		const plugin = activePlugins.find(p => p.id === pluginId);
+      console.log('Getting UID for', pluginId, 'found:', plugin);
 		return plugin?.uid ?? null;
 	};
+  
+  const handleAutostartChange = (pluginId: string, enabled: boolean) => {
+    if (!accountID) return;
+    
+    if (enabled) {
+      if (!autostart[accountID]) {
+        autostart[accountID] = [];
+      }
+      if (!autostart[accountID].includes(pluginId)) {
+        autostart[accountID].push(pluginId);
+      }
+    } else {
+      if (autostart[accountID]) {
+        const index = autostart[accountID].indexOf(pluginId);
+        if (index !== -1) {
+          autostart[accountID].splice(index, 1);
+          if (autostart[accountID].length === 0) {
+            delete autostart[accountID];
+          }
+        }
+      }
+    }
+    
+    // Sync back and save
+    bolt.autostart = autostart;
+    autostart = autostart; // trigger Svelte reactivity
+    BoltService.savePluginConfig();
+    GlobalState.pluginConfigHasPendingChanges = true;
+  };
 </script>
 
 <div class="mx-auto w-full max-w-2xl">
@@ -63,11 +106,15 @@
 				pluginId={id}
 				pluginMeta={meta}
 				clientId={clientId}
+        clientIdentity={accountID}
 				isActive={isPluginActive(id)}
+        isAutostart={isPluginAutostart(id)}
 				activePluginUid={getActivePluginUid(id)}
+        {startPlugin}
 				mainFile={pluginConfigs.get(id)?.main ?? null}
 				{onError}
 				{onRefresh}
+        onAutostartChange={handleAutostartChange}
 			/>
 		{/each}
 	{/if}

@@ -276,9 +276,9 @@ bool Browser::Client::IPCHandleMessage(int fd) {
 			struct BoltIPCIdentifyHeader header;
 			_bolt_ipc_receive(fd, &header, sizeof(header));
 			delete[] client->identity;
-			client->identity = new char[header.name_length + 1];
-			_bolt_ipc_receive(fd, client->identity, header.name_length);
-			client->identity[header.name_length] = '\0';
+			client->identity = new char[header.id_length + 1];
+			_bolt_ipc_receive(fd, client->identity, header.id_length);
+			client->identity[header.id_length] = '\0';
 			this->IPCHandleClientListUpdate(false);
 			break;
 		}
