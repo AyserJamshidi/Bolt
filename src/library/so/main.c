@@ -46,6 +46,9 @@ static void* main_window_sdl = NULL;
 
 static uint8_t mousein_real = 0;
 static uint8_t mousein_fake = 0;
+static uint8_t button_state_left = 0;
+static uint8_t button_state_right = 0;
+static uint8_t button_state_middle = 0;
 
 static const char* libc_name = "libc.so.6";
 static const char* libegl_name = "libEGL.so.1";
@@ -500,9 +503,10 @@ static void _bolt_mouseevent_from_xcb(int16_t x, int16_t y, uint32_t state, stru
     out->alt = (((1 << 3) | (1 << 7)) & state) ? 1 : 0;
     out->capslock = (state >> 1) & 1;
     out->numlock = (state >> 4) & 1;
-    out->mb_left = (state >> 8) & 1;
-    out->mb_right = (state >> 10) & 1;
-    out->mb_middle = (state >> 9) & 1;
+    // Use manually tracked button state since xcb is inconsistent
+    out->mb_left = button_state_left;
+    out->mb_right = button_state_right;
+    out->mb_middle = button_state_middle;
 }
 
 static uint8_t point_in_rect(int x, int y, int rx, int ry, int rw, int rh) {
@@ -525,10 +529,13 @@ static uint8_t handle_mouse_event(int16_t x, int16_t y, uint32_t state, ptrdiff_
 static uint8_t handle_buttonpress_event(int16_t x, int16_t y, uint32_t detail, uint16_t state) {
     switch (detail) {
         case 1:
+            button_state_left = 1;
             return handle_mouse_event(x, y, state, offsetof(struct WindowPendingInput, mouse_left), offsetof(struct WindowPendingInput, mouse_left_event), GRAB_TYPE_START);
         case 2:
+            button_state_middle = 1;
             return handle_mouse_event(x, y, state, offsetof(struct WindowPendingInput, mouse_middle), offsetof(struct WindowPendingInput, mouse_middle_event), GRAB_TYPE_NONE);
         case 3:
+            button_state_right = 1;
             return handle_mouse_event(x, y, state, offsetof(struct WindowPendingInput, mouse_right), offsetof(struct WindowPendingInput, mouse_right_event), GRAB_TYPE_NONE);
         case 4:
             return handle_mouse_event(x, y, state, offsetof(struct WindowPendingInput, mouse_scroll_up), offsetof(struct WindowPendingInput, mouse_scroll_up_event), GRAB_TYPE_NONE);
@@ -539,12 +546,16 @@ static uint8_t handle_buttonpress_event(int16_t x, int16_t y, uint32_t detail, u
 }
 
 static uint8_t handle_buttonrelease_event(int16_t x, int16_t y, uint32_t detail, uint16_t state) {
+
     switch (detail) {
         case 1:
+            button_state_left = 0;
             return handle_mouse_event(x, y, state, offsetof(struct WindowPendingInput, mouse_left_up), offsetof(struct WindowPendingInput, mouse_left_up_event), GRAB_TYPE_STOP);
         case 2:
+            button_state_middle = 0;
             return handle_mouse_event(x, y, state, offsetof(struct WindowPendingInput, mouse_middle_up), offsetof(struct WindowPendingInput, mouse_middle_up_event), GRAB_TYPE_NONE);
         case 3:
+            button_state_right = 0;
             return handle_mouse_event(x, y, state, offsetof(struct WindowPendingInput, mouse_right_up), offsetof(struct WindowPendingInput, mouse_right_up_event), GRAB_TYPE_NONE);
         case 4:
         case 5: {
