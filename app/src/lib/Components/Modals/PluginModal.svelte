@@ -243,6 +243,14 @@
 			isClientSelected = false;
 		}
 	});
+  $effect(() => {
+    if ($clientList.length > 0 && !selectedClientId) {
+      selectedClientId = $clientList[0].uid
+      isClientSelected = true
+    }
+  })
+
+
 	let selectedPluginMeta = $derived(pluginList[selectedPlugin]);
 
 	// the PluginConfig of the plugin currently selected
