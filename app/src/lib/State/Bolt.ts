@@ -39,7 +39,7 @@ export interface Bolt {
 	hasLibArchive: boolean;
 	hasBoltPlugins: boolean;
 	pluginConfig: { [key: string]: PluginMeta }; // I think this should be in GlobalState?
-  autostart: { [characterID: string]: string[]}
+	autostart: { [characterID: string]: string[] };
 }
 
 declare const s: () => BoltEnv;
@@ -58,5 +58,5 @@ export const bolt: Bolt = {
 	hasLibArchive: false,
 	hasBoltPlugins: false,
 	pluginConfig: {},
-  autostart: {}
+	autostart: {}
 };

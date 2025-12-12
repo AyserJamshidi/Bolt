@@ -3,41 +3,38 @@
 	import PluginList from './Plugin/PluginList.svelte';
 	import PluginManagementList from './Plugin/PluginManagementList.svelte';
 	import PluginManagementDetail from './Plugin/PluginManagementDetail.svelte';
-  import PluginInstallBar from './Plugin/PluginInstallBar.svelte';
+	import PluginInstallBar from './Plugin/PluginInstallBar.svelte';
 	import { bolt } from '$lib/State/Bolt';
 	import { BoltService } from '$lib/Services/BoltService';
 	import { requestNewClientListPromise } from '$lib/Util/Functions';
-	import {
-		type PluginConfig,
-		type PluginMeta,
-	} from '$lib/Util/Interfaces';
+	import { type PluginConfig, type PluginMeta } from '$lib/Util/Interfaces';
 	import { clientList } from '$lib/Util/Store';
 	import { GlobalState } from '$lib/State/GlobalState';
 
-  const { config } = GlobalState
+	const { config } = GlobalState;
 
 	let modal: Modal;
 
 	let messageText: string | null = $state(null);
 	let messageIsError: boolean = $state(false);
-  let pluginList: { [key: string]: PluginMeta } = $state(bolt.pluginConfig);
+	let pluginList: { [key: string]: PluginMeta } = $state(bolt.pluginConfig);
 	let accounts = $derived(BoltService.findSession($config.selected.user_id)?.accounts ?? []);
-
 
 	const platformFileSep: string = bolt.platform === 'windows' ? '\\' : '/';
 	const configFileName: string = 'bolt.json';
 	const sepConfigFileName: string = platformFileSep.concat(configFileName);
 
-  function getAccountNameById(id?: string): string {
-    if (!id)  return unnamedClientName
+	function getAccountNameById(id?: string): string {
+		if (!id) return unnamedClientName;
 
-    return accounts.find(v => {
-      return v.accountId == id
-    })?.displayName || unnamedClientName
-  }
+		return (
+			accounts.find((v) => {
+				return v.accountId == id;
+			})?.displayName || unnamedClientName
+		);
+	}
 
 	export function open() {
-		showURLEntry = false;
 		modal.open();
 	}
 
@@ -82,9 +79,9 @@
 	const getPluginConfigPromiseFromDataDir = async (id: string): Promise<PluginConfig | null> => {
 		const x = await fetch('/get-plugindir-json?'.concat(new URLSearchParams({ id }).toString()));
 		if (!x.ok) {
-      setMessageError(`Couldn't load plugin config: ${x.status} ${x.statusText}`)
-      return null;
-    }
+			setMessageError(`Couldn't load plugin config: ${x.status} ${x.statusText}`);
+			return null;
+		}
 		return x.json();
 	};
 
@@ -128,11 +125,8 @@
 		}
 	};
 
-	let disableButtons: boolean = $state(false);
-
 	// tries to configure a new plugin from an updater URL
 	const addPluginFromUpdaterURL = async (url: string) => {
-		disableButtons = true;
 		try {
 			setMessageInfo('downloading...');
 			const metaUrlResponse = await fetch(url);
@@ -190,15 +184,14 @@
 			setMessageInfo(`plugin '${plugin.name}' installed`);
 		} catch {
 			setMessageError("can't install plugin: unhandled exception");
-		} finally {
-			disableButtons = false;
 		}
 	};
 
 	// shows the user a file picker for .json files which will attempt to add
-	// a plugin using the manifest that the user selects, if any
-	const jsonFilePicker = () => {
-		disableButtons = true;
+	// a plugin using the manifest that the user selects, if any.
+	// optionally, takes a callback that will be called when the file-picking
+	// has finished, no matter what the outcome was.
+	const jsonFilePicker = (cb: (() => void) | null | undefined) => {
 		fetch('/json-file-picker')
 			.then(async (x) => {
 				// note this function won't be called until the user selects a file (or not),
@@ -220,7 +213,7 @@
 				const subpath: string = text.substring(0, text.length - configFileName.length);
 				addPluginFromPath(subpath);
 			})
-			.finally(() => (disableButtons = false));
+			.finally(cb);
 	};
 
 	// get connected client list - the UI can be re-opened while clients are already running
@@ -235,21 +228,17 @@
 	// connected clients list
 	var isClientSelected: boolean = $state(false);
 	var selectedClientId: number = $state(0);
-
-	let showURLEntry: boolean = $state(false);
-	let textURLEntry: string = $state('');
 	$effect(() => {
 		if (!$clientList.some((x) => x.uid === selectedClientId)) {
 			isClientSelected = false;
 		}
 	});
-  $effect(() => {
-    if ($clientList.length > 0 && !selectedClientId) {
-      selectedClientId = $clientList[0].uid
-      isClientSelected = true
-    }
-  })
-
+	$effect(() => {
+		if ($clientList.length > 0 && !selectedClientId) {
+			selectedClientId = $clientList[0].uid;
+			isClientSelected = true;
+		}
+	});
 
 	let selectedPluginMeta = $derived(pluginList[selectedPlugin]);
 
@@ -284,53 +273,60 @@
 		});
 	});
 
-  // Track which clients we've already auto-started plugins for
-  let autostartedClients = new Set<number>();
+	// Track which clients we've already auto-started plugins for
+	let autostartedClients = new Set<number>();
 
 	const startPlugin = async (client: number, id: string, path: string | null, main: string) => {
 		const params: Record<string, string> = { client: client.toString(), id, main };
 		if (path) {
 			const pathWithCorrectSeps = path.replaceAll('\\', '/');
-			params.path = pathWithCorrectSeps.endsWith('/') ? pathWithCorrectSeps : pathWithCorrectSeps + '/';
+			params.path = pathWithCorrectSeps.endsWith('/')
+				? pathWithCorrectSeps
+				: pathWithCorrectSeps + '/';
 		}
 		const response = await fetch('/start-plugin?' + new URLSearchParams(params).toString());
-		requestNewClientListPromise()
+		requestNewClientListPromise();
 		if (!response.ok) {
 			setMessageError(`couldn't start plugin: ${response.status}: ${response.statusText}`);
 		}
 	};
 
-  // Watch for new clients and autostart their plugins
-  $effect(() => {
-    $clientList.forEach(client => {
-      if (autostartedClients.has(client.uid)) return;
-      if (!client.identity || !bolt.autostart[client.identity]) return;
-      
-      const pluginsToStart = bolt.autostart[client.identity];
-      if (pluginsToStart.length === 0) return;
-      
-      autostartedClients.add(client.uid);
-      
-      // TBD: adding a timeout to wait for client to be read
-      setTimeout(async () => {
-      await Promise.all(
-        pluginsToStart.map(async (pluginId) => {
-          const meta = pluginList[pluginId];
-          if (meta) {
-            const config = await getPluginConfigPromiseByID(pluginId);
-            await startPlugin(client.uid, pluginId, meta.path || null, config?.main ?? "main.lua");
-          } else {
-            console.warn(`Autostart plugin ${pluginId} not found in plugin list`);
-          }
-        })
-      );
-    }, 2000);
-    });
-    
-    // Clean up Set when clients disconnect
-    const currentClientIds = new Set($clientList.map(c => c.uid));
-    autostartedClients = new Set([...autostartedClients].filter(id => currentClientIds.has(id)));
-  });
+	// Watch for new clients and autostart their plugins
+	$effect(() => {
+		$clientList.forEach((client) => {
+			if (autostartedClients.has(client.uid)) return;
+			if (!client.identity || !bolt.autostart[client.identity]) return;
+
+			const pluginsToStart = bolt.autostart[client.identity];
+			if (pluginsToStart.length === 0) return;
+
+			autostartedClients.add(client.uid);
+
+			// TBD: adding a timeout to wait for client to be read
+			setTimeout(async () => {
+				await Promise.all(
+					pluginsToStart.map(async (pluginId) => {
+						const meta = pluginList[pluginId];
+						if (meta) {
+							const config = await getPluginConfigPromiseByID(pluginId);
+							await startPlugin(
+								client.uid,
+								pluginId,
+								meta.path || null,
+								config?.main ?? 'main.lua'
+							);
+						} else {
+							console.warn(`Autostart plugin ${pluginId} not found in plugin list`);
+						}
+					})
+				);
+			}, 2000);
+		});
+
+		// Clean up Set when clients disconnect
+		const currentClientIds = new Set($clientList.map((c) => c.uid));
+		autostartedClients = new Set([...autostartedClients].filter((id) => currentClientIds.has(id)));
+	});
 </script>
 
 <Modal bind:this={modal} class="h-[90%] w-[90%] text-center" onClose={close}>
@@ -351,8 +347,6 @@
 				onclick={() => {
 					selectedClientId = client.uid;
 					isClientSelected = true;
-					showURLEntry = false;
-					textURLEntry = '';
 					messageText = null;
 				}}
 				class="m-1 h-[28px] w-[95%] select-none rounded-lg border-2 {isClientSelected &&
@@ -365,24 +359,24 @@
 			<br />
 		{/each}
 		{#if $clientList.length == 0}
-      <p class="px-2 text-xs italic text-slate-500 dark:text-slate-400">
-        (start an RS3 game client with plugins enabled and it will be listed here.)
-      </p>
+			<p class="px-2 text-xs italic text-slate-500 dark:text-slate-400">
+				(start an RS3 game client with plugins enabled and it will be listed here.)
+			</p>
 		{/if}
 	</div>
 	<div class="flex h-full flex-col pt-2">
 		{#if bolt.hasBoltPlugins}
-      <PluginInstallBar
-          hasLibArchive={bolt.hasLibArchive}
-          {pluginList}
-          onInstallFromURL={addPluginFromUpdaterURL}
-          onInstallFromFolder={jsonFilePicker}
-          {getPluginConfigPromiseFromDataDir}
-          {setMessageInfo}
-          {setMessageError}
-        />
+			<PluginInstallBar
+				hasLibArchive={bolt.hasLibArchive}
+				{pluginList}
+				onInstallFromURL={addPluginFromUpdaterURL}
+				{jsonFilePicker}
+				{getPluginConfigPromiseFromDataDir}
+				{setMessageInfo}
+				{setMessageError}
+			/>
 
-        {#if !isClientSelected}
+			{#if !isClientSelected}
 				<!-- Two-column layout for plugin management -->
 				<div class="flex flex-1 overflow-hidden">
 					<!-- Left: Plugin list -->
@@ -399,7 +393,7 @@
 
 					<!-- Right: Plugin details -->
 					<div class="flex-1 overflow-y-auto">
-						{#if selectedPlugin }
+						{#if selectedPlugin}
 							<PluginManagementDetail
 								pluginId={selectedPlugin}
 								pluginMeta={selectedPluginMeta}
@@ -433,12 +427,12 @@
 				<!-- Client plugin list -->
 				<PluginList
 					clientId={selectedClientId}
-          accountID={$clientList.find(c => c.uid === selectedClientId)?.identity}
+					accountID={$clientList.find((c) => c.uid === selectedClientId)?.identity}
 					{pluginList}
 					activePlugins={$clientList.find((c) => c.uid === selectedClientId)?.plugins ?? []}
 					onError={setMessageError}
 					onRefresh={() => requestNewClientListPromise()}
-          {startPlugin}
+					{startPlugin}
 				/>
 			{/if}
 		{/if}

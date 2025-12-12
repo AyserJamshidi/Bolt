@@ -46,7 +46,9 @@
 
 		let config: PluginUpdaterConfig = await x.json();
 		if (!config.url) {
-			setMessageInfo(`can't update plugin '${pluginMeta.name}': no remote download URL is configured`);
+			setMessageInfo(
+				`can't update plugin '${pluginMeta.name}': no remote download URL is configured`
+			);
 			return;
 		}
 

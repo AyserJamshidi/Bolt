@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { PluginMeta, PluginUpdaterConfig } from '$lib/Util/Interfaces';
+	import type { PluginConfig, PluginMeta, PluginUpdaterConfig } from '$lib/Util/Interfaces';
 	import { GlobalState } from '$lib/State/GlobalState';
 
 	interface Props {
 		hasLibArchive: boolean;
 		pluginList: { [key: string]: PluginMeta };
 		onInstallFromURL: (url: string) => Promise<void>;
-		onInstallFromFolder: () => void;
-		getPluginConfigPromiseFromDataDir: (id: string) => Promise<any>;
+		jsonFilePicker: (cb: () => void) => void;
+		getPluginConfigPromiseFromDataDir: (id: string) => Promise<PluginConfig | null>;
 		setMessageInfo: (msg: string) => void;
 		setMessageError: (msg: string) => void;
 	}
@@ -16,7 +16,7 @@
 		hasLibArchive,
 		pluginList,
 		onInstallFromURL,
-		onInstallFromFolder,
+		jsonFilePicker,
 		getPluginConfigPromiseFromDataDir,
 		setMessageInfo,
 		setMessageError
@@ -106,13 +106,20 @@
 					`Updated ${updatedCount} plugin(s). ${skippedCount} skipped (no updater URL).`
 				);
 			} else {
-				setMessageInfo(`All plugins are up-to-date. ${skippedCount} plugin(s) have no updater URL.`);
+				setMessageInfo(
+					`All plugins are up-to-date. ${skippedCount} plugin(s) have no updater URL.`
+				);
 			}
 		} catch (e) {
 			setMessageError(`Error updating plugins: ${e}`);
 		} finally {
 			disableButtons = false;
 		}
+	};
+
+	const onInstallFromFolder = () => {
+		disableButtons = true;
+		jsonFilePicker(() => (disableButtons = false));
 	};
 </script>
 

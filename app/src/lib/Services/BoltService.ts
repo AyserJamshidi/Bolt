@@ -75,9 +75,9 @@ export class BoltService {
 		const body: string = JSON.stringify(object);
 		const headers = { 'Content-Type': 'application/json' };
 		const response = await fetch(api, { method: 'POST', body, headers });
-        if (!response.ok)
-            response.text().then((text) => logger.error(`${api} error: ${response.status}: ${text}`));
-        if (callback) callback(response);
+		if (!response.ok)
+			response.text().then((text) => logger.error(`${api} error: ${response.status}: ${text}`));
+		if (callback) callback(response);
 	}
 
 	// sends an asynchronous request to save the current user config to disk, if it has changed
@@ -95,15 +95,15 @@ export class BoltService {
 	}
 
 	// sends an asynchronous request to save the current plugin config to disk, if it has changed
-  static savePluginConfig(checkForPendingChanges = true) {
-    if (savePluginInProgress) return;
-    if (checkForPendingChanges && !GlobalState.pluginConfigHasPendingChanges) return;
-    savePluginInProgress = true;
-    
-    const configToSave = { ...bolt.pluginConfig, autostart: bolt.autostart };
-    
-    this.postJSON('/save-plugin-config', configToSave, () => (savePluginInProgress = false));
-  }
+	static savePluginConfig(checkForPendingChanges = true) {
+		if (savePluginInProgress) return;
+		if (checkForPendingChanges && !GlobalState.pluginConfigHasPendingChanges) return;
+		savePluginInProgress = true;
+
+		const configToSave = { ...bolt.pluginConfig, autostart: bolt.autostart };
+
+		this.postJSON('/save-plugin-config', configToSave, () => (savePluginInProgress = false));
+	}
 
 	// sends a request to save all credentials to their config file,
 	// overwriting the previous file, if any
