@@ -113,13 +113,14 @@
 			const plugin = await getPluginConfigPromiseByPath(folderPath);
 			if (!plugin) return; // if this returns null, error message was already set
 			selectedPlugin = getNewPluginID();
+			const name = plugin.name ?? unnamedPluginName;
 			pluginList[selectedPlugin] = {
-				name: plugin.name ?? unnamedPluginName,
+				name,
 				path: folderPath,
-				version: plugin.version
+				version: plugin.version,
+				originalName: name
 			};
-			bolt.pluginConfig = pluginList;
-			GlobalState.pluginConfigHasPendingChanges = true;
+			handlePluginMetaChange();
 		} catch {
 			setMessageError("can't install plugin: unhandled exception");
 		}
@@ -173,18 +174,24 @@
 			}
 
 			selectedPlugin = id;
+			const name = plugin.name ?? unnamedPluginName;
 			pluginList[selectedPlugin] = {
-				name: plugin.name ?? unnamedPluginName,
+				name,
 				version: plugin.version,
 				updaterURL: url,
-				sha256: config.sha256
+				sha256: config.sha256,
+				originalName: name
 			};
-			bolt.pluginConfig = pluginList;
-			GlobalState.pluginConfigHasPendingChanges = true;
+			handlePluginMetaChange();
 			setMessageInfo(`plugin '${plugin.name}' installed`);
 		} catch {
 			setMessageError("can't install plugin: unhandled exception");
 		}
+	};
+
+	const handlePluginMetaChange = () => {
+		bolt.pluginConfig = pluginList;
+		GlobalState.pluginConfigHasPendingChanges = true;
 	};
 
 	// shows the user a file picker for .json files which will attempt to add
@@ -256,10 +263,13 @@
 			if (!x) return;
 			managementPlugin = x;
 
-			// if the name in bolt.json has been changed, update it in the PluginMeta and our plugin config file
+			// if bolt.json has been changed, update the PluginMeta and our plugin config file accordingly
 			let dirty = false;
-			if (x.name !== selectedPluginMeta.name) {
-				selectedPluginMeta.name = x.name;
+			if (x.name !== selectedPluginMeta.originalName) {
+				if (selectedPluginMeta.name === selectedPluginMeta.originalName) {
+					selectedPluginMeta.name = x.name;
+				}
+				selectedPluginMeta.originalName = x.name;
 				dirty = true;
 			}
 			if (x.version !== selectedPluginMeta.version) {
@@ -388,6 +398,7 @@
 								selectedPlugin = id;
 								messageText = null;
 							}}
+							onMetaChange={handlePluginMetaChange}
 						/>
 					</div>
 

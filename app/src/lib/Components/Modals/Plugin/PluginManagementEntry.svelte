@@ -6,9 +6,27 @@
 		pluginMeta: PluginMeta;
 		isSelected: boolean;
 		onSelect: () => void;
+		onMetaChange: () => void;
 	}
 
-	let { pluginMeta, isSelected, onSelect }: Props = $props();
+	let { pluginMeta, isSelected, onSelect, onMetaChange }: Props = $props();
+
+	let editNameString: string | null = $state(null);
+	const startRename = () => (editNameString = pluginMeta.name ?? '');
+	const cancelRename = () => (editNameString = null);
+	const finishRename = () => {
+		if (editNameString !== null) {
+			const newName = editNameString.trim() === '' ? pluginMeta.originalName : editNameString;
+			if (pluginMeta.name !== newName) {
+				pluginMeta.name = newName;
+				onMetaChange();
+			}
+			cancelRename();
+		}
+	};
+	$effect(() => {
+		if (!isSelected) cancelRename();
+	});
 
 	let isOutdated: boolean = $state(false);
 	let checkingUpdate: boolean = $state(false);
@@ -51,13 +69,25 @@
 
 <button
 	onclick={onSelect}
-	class="w-full border-b border-slate-300 p-3 text-left transition-colors hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800 {isSelected
+	ondblclick={startRename}
+	class="w-full border-b border-slate-300 px-3 py-1 text-left transition-colors hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800 {isSelected
 		? 'bg-blue-100 dark:bg-blue-900'
 		: ''}"
 >
-	<div class="flex items-center justify-between">
+	<div class="flex select-none items-center justify-between">
 		<div class="flex-1">
-			<div class="font-medium">{pluginMeta.name}</div>
+			{#if editNameString === null}
+				<div class="font-medium">{pluginMeta.name}</div>
+			{:else}
+				<input
+					type="text"
+					class="text-black"
+					bind:value={editNameString}
+					onkeypress={(e) => {
+						if (e && e.key === 'Enter') finishRename();
+					}}
+				/>
+			{/if}
 			{#if pluginMeta.version}
 				<div class="text-sm text-slate-600 dark:text-slate-400">v{pluginMeta.version}</div>
 			{/if}

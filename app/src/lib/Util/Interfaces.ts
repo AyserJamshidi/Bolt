@@ -55,6 +55,7 @@ export interface PluginMeta {
 	updaterURL?: string;
 	version?: string;
 	sha256?: string;
+	originalName?: string; // last-known name read from bolt.json, used only to check for changes
 }
 
 // rs3 plugin config, from the plugin's bolt.json

@@ -6,9 +6,10 @@
 		pluginList: { [key: string]: PluginMeta };
 		selectedPluginId: string | null;
 		onSelectPlugin: (id: string) => void;
+		onMetaChange: () => void;
 	}
 
-	let { pluginList, selectedPluginId, onSelectPlugin }: Props = $props();
+	let { pluginList, selectedPluginId, onSelectPlugin, onMetaChange }: Props = $props();
 </script>
 
 <div class="h-full overflow-y-auto border-r-2 border-slate-300 dark:border-slate-800">
@@ -24,6 +25,7 @@
 				pluginMeta={meta}
 				isSelected={selectedPluginId === id}
 				onSelect={() => onSelectPlugin(id)}
+				{onMetaChange}
 			/>
 		{/each}
 	{/if}
