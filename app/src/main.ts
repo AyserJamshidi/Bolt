@@ -48,15 +48,18 @@ function initBolt() {
 	bolt.runeLiteInstalledId = params.get('runelite_installed_id');
 	bolt.hdosInstalledVersion = params.get('hdos_installed_version');
 
-	const plugins = params.get('plugins');
-	bolt.hasBoltPlugins = plugins !== null;
-	if (plugins !== null) {
-		try {
-			bolt.pluginConfig = JSON.parse(plugins);
-		} catch (e) {
-			logger.error('Unable to parse plugin list');
-		}
-	}
+  const plugins = params.get('plugins');
+  bolt.hasBoltPlugins = plugins !== null;
+  if (plugins !== null) {
+    try {
+      const parsed = JSON.parse(plugins);
+      const { autostart, ...pluginEntries } = parsed;
+      bolt.pluginConfig = pluginEntries;
+      bolt.autostart = autostart ?? {};
+    } catch (e) {
+      logger.error('Unable to parse plugin list');
+    }
+  }
 
 	const sessionsParam = params.get('credentials');
 	if (sessionsParam) {
