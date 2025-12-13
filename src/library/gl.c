@@ -1685,7 +1685,7 @@ static void glDisableVertexAttribArray(GLuint index) {
 }
 
 static void glEnableVertexArrayAttrib(GLuint vaobj, GLuint index) {
-    LOG("glEnableVertexArrayAttrib(%u, %u)\n", vaobj, index);
+    LOGF("glEnableVertexArrayAttrib(%u, %u)\n", vaobj, index);
     gl.EnableVertexArrayAttrib(vaobj, index);
     const struct GLContext* c = _bolt_context();
     const struct GLVertexArray* vao = context_get_vao(c, vaobj);
