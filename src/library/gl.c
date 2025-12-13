@@ -988,7 +988,7 @@ static void draw_gameview_overlay(const struct GLContext* c) {
     lgl->Viewport(c->viewport_x, c->viewport_y, c->viewport_w, c->viewport_h);
     const struct TextureUnit* unit = &c->texture_units[c->active_texture];
     lgl->BindTexture(unit->target, unit->recent);
-    gl.BindVertexArray(c->bound_vao->id);
+    gl.BindVertexArray(c->bound_vao ? c->bound_vao->id : 0);
     gl.UseProgram(c->bound_program ? c->bound_program->id : 0);
 }
 
@@ -1426,9 +1426,11 @@ static void glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboole
     LOG("glVertexAttribPointer\n");
     gl.VertexAttribPointer(index, size, type, normalised, stride, pointer);
     struct GLContext* c = _bolt_context();
-    GLint array_binding;
-    lgl->GetIntegerv(GL_ARRAY_BUFFER_BINDING, &array_binding);
-    attr_set_binding(c, &c->bound_vao->attributes[index], array_binding, size, pointer, stride, type, normalised);
+    if (c->bound_vao) {
+        GLint array_binding;
+        lgl->GetIntegerv(GL_ARRAY_BUFFER_BINDING, &array_binding);
+        attr_set_binding(c, &c->bound_vao->attributes[index], array_binding, size, pointer, stride, type, normalised);
+    }
     LOG("glVertexAttribPointer end\n");
 }
 
@@ -1670,7 +1672,7 @@ static void glEnableVertexAttribArray(GLuint index) {
     LOG("glEnableVertexAttribArray\n");
     gl.EnableVertexAttribArray(index);
     struct GLContext* c = _bolt_context();
-    c->bound_vao->attributes[index].enabled = 1;
+    if (c->bound_vao) c->bound_vao->attributes[index].enabled = 1;
     LOG("glEnableVertexAttribArray end\n");
 }
 
@@ -1678,7 +1680,7 @@ static void glDisableVertexAttribArray(GLuint index) {
     LOG("glDisableVertexAttribArray\n");
     gl.DisableVertexAttribArray(index);
     struct GLContext* c = _bolt_context();
-    c->bound_vao->attributes[index].enabled = 0;
+    if (c->bound_vao) c->bound_vao->attributes[index].enabled = 0;
     LOG("glDisableVertexAttribArray end\n");
 }
 
@@ -2050,6 +2052,7 @@ void _bolt_gl_onGenTextures(GLsizei n, GLuint* textures) {
 
 void _bolt_gl_onDrawElements(GLenum mode, GLsizei count, GLenum type, const void* indices_offset) {
     struct GLContext* c = _bolt_context();
+    if (!c->bound_vao) return;
     struct GLAttrBinding* attributes = c->bound_vao->attributes;
     GLint element_binding;
     lgl->GetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &element_binding);
@@ -2954,7 +2957,7 @@ static void surface_draw(const struct GLContext* c, const struct PluginSurfaceUs
     const struct TextureUnit* unit = &c->texture_units[c->active_texture];
     lgl->BindTexture(unit->target, unit->recent);
     gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, c->current_draw_framebuffer);
-    gl.BindVertexArray(c->bound_vao->id);
+    gl.BindVertexArray(c->bound_vao ? c->bound_vao->id : 0);
     gl.UseProgram(c->bound_program ? c->bound_program->id : 0);
 }
 
@@ -3012,7 +3015,7 @@ static void shaderprogram_draw(const struct PluginProgramUserdata* program, cons
     lgl->Viewport(c->viewport_x, c->viewport_y, c->viewport_w, c->viewport_h);
     gl.BindBuffer(GL_ARRAY_BUFFER, array_binding);
     gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, c->current_draw_framebuffer);
-    gl.BindVertexArray(c->bound_vao->id);
+    gl.BindVertexArray(c->bound_vao ? c->bound_vao->id : 0);
     gl.UseProgram(c->bound_program ? c->bound_program->id : 0);    
 }
 
@@ -3580,7 +3583,7 @@ static void glplugin_draw_region_outline(void* userdata, int16_t x, int16_t y, u
     if (cull_face) lgl->Enable(GL_CULL_FACE);
     lgl->Viewport(c->viewport_x, c->viewport_y, c->viewport_w, c->viewport_h);
     gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, c->current_draw_framebuffer);
-    gl.BindVertexArray(c->bound_vao->id);
+    gl.BindVertexArray(c->bound_vao ? c->bound_vao->id : 0);
     gl.UseProgram(c->bound_program ? c->bound_program->id : 0);
 }
 
