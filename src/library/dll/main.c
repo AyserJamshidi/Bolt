@@ -178,12 +178,18 @@ DWORD __stdcall BOLT_STUB_ENTRYNAME(struct PluginInjectParams* data) {
 }
 
 void _bolt_flash_window(void) {
+    // which of game_hwnd or game_parent_hwnd will actually cause taskbar flashing
+    // seems to be inconsistent across systems, so we do both here.
+    // FLASHW_TIMERNOFG means the window flashes until the window gains focus, so
+    // in theory uCount should be ignored? but MSDN doesn't actually say if it is or not.
     FLASHWINFO info;
     info.cbSize = sizeof info;
     info.hwnd = game_hwnd;
     info.dwFlags = FLASHW_ALL | FLASHW_TIMERNOFG;
     info.uCount = -1;
     info.dwTimeout = 0;
+    FlashWindowEx(&info);
+    info.hwnd = game_parent_hwnd;
     FlashWindowEx(&info);
 }
 
