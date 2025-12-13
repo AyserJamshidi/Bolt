@@ -1164,6 +1164,7 @@ void _bolt_gl_close() {
     gl.DeleteBuffers(1, &buffer_vertices_square);
     gl.DeleteProgram(program_direct_screen.id);
     gl.DeleteProgram(program_direct_surface.id);
+    gl.DeleteProgram(program_region);
     gl.DeleteVertexArrays(1, &program_direct_vao);
     context_destroy((void*)egl_main_context);
 }
@@ -1987,10 +1988,9 @@ void _bolt_gl_onCreateContext(void* context, void* shared_context, const struct 
         lgl = libgl;
         if (egl_init_count == 0) {
             gl_load(GetProcAddress);
-        } else {
-            egl_main_context = (uintptr_t)context;
-            egl_main_context_makecurrent_pending = 1;
         }
+        egl_main_context = (uintptr_t)context;
+        egl_main_context_makecurrent_pending = 1;
         egl_init_count += 1;
     }
     context_create(context, shared_context);
@@ -2048,7 +2048,7 @@ void* _bolt_gl_onDestroyContext(void* context) {
     }
     if (context_count() == 1 && egl_main_context_destroy_pending) {
         do_destroy_main = 1;
-        if (egl_init_count > 1) _bolt_plugin_close();
+        _bolt_plugin_close();
     }
     return do_destroy_main ? (void*)egl_main_context : NULL;
 }
