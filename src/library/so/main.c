@@ -439,32 +439,32 @@ unsigned int eglSwapBuffers(void* display, void* surface) {
 }
 
 void* eglCreateContext(void* display, void* config, void* share_context, const void* attrib_list) {
-    LOG("eglCreateContext\n");
-    void* ret = real_eglCreateContext(display, config, share_context, attrib_list);
+    LOGF("eglCreateContext(%lu, %lu, %lu, %lu)\n", (uintptr_t)display, (uintptr_t)config, (uintptr_t)share_context, (uintptr_t)attrib_list);
+    void* const ret = real_eglCreateContext(display, config, share_context, attrib_list);
     if (ret) {
         pthread_mutex_lock(&egl_lock);
         _bolt_gl_onCreateContext(ret, share_context, &libgl, real_eglGetProcAddress, true);
         pthread_mutex_unlock(&egl_lock);
     }
-    LOGF("eglCreateContext end (returned %lu)\n", (uintptr_t)ret);
+    LOGF("eglCreateContext -> %lu\n", (uintptr_t)ret);
     return ret;
 }
 
 unsigned int eglMakeCurrent(void* display, void* draw, void* read, void* context) {
-    LOG("eglMakeCurrent\n");
-    unsigned int ret = real_eglMakeCurrent(display, draw, read, context);
+    LOGF("eglMakeCurrent(%lu, %lu, %lu, %lu)\n", (uintptr_t)display, (uintptr_t)draw, (uintptr_t)read, (uintptr_t)context);
+    const unsigned int ret = real_eglMakeCurrent(display, draw, read, context);
     if (ret) {
         pthread_mutex_lock(&egl_lock);
         _bolt_gl_onMakeCurrent(context);
         pthread_mutex_unlock(&egl_lock);
     }
-    LOGF("eglMakeCurrent end (returned %u)\n", ret);
+    LOGF("eglMakeCurrent -> %u\n", ret);
     return ret;
 }
 
 unsigned int eglDestroyContext(void* display, void* context) {
-    LOGF("eglDestroyContext %lu\n", (uintptr_t)context);
-    unsigned int ret = real_eglDestroyContext(display, context);
+    LOGF("eglDestroyContext(%lu, %lu)\n", (uintptr_t)display, (uintptr_t)context);
+    const unsigned int ret = real_eglDestroyContext(display, context);
     if (ret) {
         pthread_mutex_lock(&egl_lock);
         void* c = _bolt_gl_onDestroyContext(context);
@@ -476,7 +476,7 @@ unsigned int eglDestroyContext(void* display, void* context) {
         }
         pthread_mutex_unlock(&egl_lock);
     }
-    LOGF("eglDestroyContext end (returned %u)\n", ret);
+    LOGF("eglDestroyContext -> %u\n", ret);
     return ret;
 }
 
