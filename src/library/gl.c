@@ -1677,11 +1677,29 @@ static void glEnableVertexAttribArray(GLuint index) {
 }
 
 static void glDisableVertexAttribArray(GLuint index) {
-    LOG("glDisableVertexAttribArray\n");
+    LOGF("glDisableVertexAttribArray(%u)\n", index);
     gl.DisableVertexAttribArray(index);
     struct GLContext* c = _bolt_context();
     if (c->bound_vao) c->bound_vao->attributes[index].enabled = 0;
     LOG("glDisableVertexAttribArray end\n");
+}
+
+static void glEnableVertexArrayAttrib(GLuint vaobj, GLuint index) {
+    LOG("glEnableVertexArrayAttrib(%u, %u)\n", vaobj, index);
+    gl.EnableVertexArrayAttrib(vaobj, index);
+    const struct GLContext* c = _bolt_context();
+    const struct GLVertexArray* vao = context_get_vao(c, vaobj);
+    if (vao) vao->attributes[index].enabled = 1;
+    LOG("glEnableVertexArrayAttrib end\n");
+}
+
+static void glDisableVertexArrayAttrib(GLuint vaobj, GLuint index) {
+    LOG("glEnableVertexArrayAttrib\n");
+    gl.DisableVertexArrayAttrib(vaobj, index);
+    const struct GLContext* c = _bolt_context();
+    const struct GLVertexArray* vao = context_get_vao(c, vaobj);
+    if (vao) vao->attributes[index].enabled = 0;
+    LOG("glEnableVertexArrayAttrib end\n");
 }
 
 static void* glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access) {
@@ -1923,6 +1941,8 @@ void* _bolt_gl_GetProcAddress(const char* name) {
     PROC_ADDRESS_MAP(CopyImageSubData)
     PROC_ADDRESS_MAP(EnableVertexAttribArray)
     PROC_ADDRESS_MAP(DisableVertexAttribArray)
+    PROC_ADDRESS_MAP(EnableVertexArrayAttrib)
+    PROC_ADDRESS_MAP(DisableVertexArrayAttrib)
     PROC_ADDRESS_MAP(MapBufferRange)
     PROC_ADDRESS_MAP(UnmapBuffer)
     PROC_ADDRESS_MAP(BufferStorage)

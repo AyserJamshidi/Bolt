@@ -155,7 +155,9 @@ struct GLProcFunctions {
     void (*DeleteShader)(GLuint);
     void (*DeleteVertexArrays)(GLsizei, const GLuint*);
     void (*DetachShader)(GLuint, GLuint);
+    void (*DisableVertexArrayAttrib)(GLuint, GLuint);
     void (*DisableVertexAttribArray)(GLuint);
+    void (*EnableVertexArrayAttrib)(GLuint, GLuint);
     void (*EnableVertexAttribArray)(GLuint);
     void (*FlushMappedBufferRange)(GLenum, GLintptr, GLsizeiptr);
     void (*FramebufferTexture)(GLenum, GLenum, GLuint, GLint);
