@@ -61,7 +61,6 @@
 
 	const getActivePluginUid = (pluginId: string): number | null => {
 		const plugin = activePlugins.find((p) => p.id === pluginId);
-		console.log('Getting UID for', pluginId, 'found:', plugin);
 		return plugin?.uid ?? null;
 	};
 
