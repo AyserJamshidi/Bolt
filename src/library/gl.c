@@ -185,10 +185,9 @@ struct GLContext {
 static unsigned int gl_width = 0;
 static unsigned int gl_height = 0;
 
-static size_t egl_init_count = 0;
 static uintptr_t egl_main_context = 0;
-static uint8_t egl_main_context_destroy_pending = 0;
-static uint8_t egl_main_context_makecurrent_pending = 0;
+static uint8_t egl_inited = 0;
+static uint8_t egl_main_context_setup_pending = 0;
 
 static struct GLProcFunctions gl = {0};
 static const struct GLLibFunctions* lgl = NULL;
@@ -379,6 +378,27 @@ static void drawelements_handle_3d_iconrender(GLsizei count, const unsigned shor
 #define GAME_ITEM_ICON_SIZE 64
 #define GAME_ITEM_BIGICON_SIZE 512
 static struct GLContext contexts[CONTEXTS_CAPACITY];
+
+// functions that aren't part of a userdata, and therefore may be called by any part of the plugin API at any time
+const struct PluginManagedFunctions plugin_managed_functions = {
+    .flash_window = _bolt_flash_window,
+    .window_has_focus = _bolt_window_has_focus,
+    .surface_init = glplugin_surface_init,
+    .surface_destroy = glplugin_surface_destroy,
+    .surface_resize_and_clear = glplugin_surface_resize,
+    .draw_region_outline = glplugin_draw_region_outline,
+    .read_screen_pixels = glplugin_read_screen_pixels,
+    .copy_screen = glplugin_copy_screen,
+    .game_view_rect = glplugin_game_view_rect,
+    .player_position = glplugin_player_position,
+    .vertex_shader_init = glplugin_vertex_shader_init,
+    .fragment_shader_init = glplugin_fragment_shader_init,
+    .shader_program_init = glplugin_shaderprogram_init,
+    .shader_buffer_init = glplugin_shaderbuffer_init,
+    .shader_destroy = glplugin_shader_destroy,
+    .shader_program_destroy = glplugin_shaderprogram_destroy,
+    .shader_buffer_destroy = glplugin_shaderbuffer_destroy,
+};
 
 // since GL contexts are bound only to the thread that binds them, we use thread-local storage (TLS)
 // to keep track of which context struct is relevant to each thread. One TLS slot can store exactly
@@ -1075,8 +1095,8 @@ static void gl_load(void* (*GetProcAddress)(const char*)) {
 #undef INIT_GL_FUNC
 }
 
-// this function is called when the "main" gl context gets created, and is undone by _bolt_gl_close()
-// when all the contexts are destroyed.
+// this function is called when the "main" gl context gets created, and is undone by gl_terminate()
+// when the main context is destroyed.
 static void gl_init() {
     GLint size;
     const GLchar* source;
@@ -1160,7 +1180,7 @@ static void gl_init() {
     gl.BindVertexArray(0);
 }
 
-void _bolt_gl_close() {
+void gl_terminate() {
     gl.DeleteBuffers(1, &buffer_vertices_square);
     gl.DeleteProgram(program_direct_screen.id);
     gl.DeleteProgram(program_direct_surface.id);
@@ -1965,9 +1985,16 @@ void* _bolt_gl_GetProcAddress(const char* name) {
 void _bolt_gl_onSwapBuffers(uint32_t window_width, uint32_t window_height) {
     gl_width = window_width;
     gl_height = window_height;
+    if (egl_main_context_setup_pending) {
+        if ((uintptr_t)(_bolt_context()->id) == egl_main_context) {
+            egl_main_context_setup_pending = 0;
+            gl_init();
+            _bolt_plugin_init(&plugin_managed_functions);
+        }
+    }
     player_model_tex_seen = false;
     pending_gameview_overlay_tex = 0;
-    if (_bolt_plugin_is_inited()) _bolt_plugin_end_frame(window_width, window_height);
+    _bolt_plugin_end_frame(window_width, window_height);
     
     frames_without_3d += 1;
     if (frames_without_3d > 10) {
@@ -1984,14 +2011,13 @@ void _bolt_gl_onSwapBuffers(uint32_t window_width, uint32_t window_height) {
 }
 
 void _bolt_gl_onCreateContext(void* context, void* shared_context, const struct GLLibFunctions* libgl, void* (*GetProcAddress)(const char*), bool is_important) {
-    if (!shared_context && is_important) {
+    if (shared_context) {
+        egl_main_context = (uintptr_t)shared_context;
+        egl_main_context_setup_pending = 1;
+    } else if (is_important && !egl_inited) {
         lgl = libgl;
-        if (egl_init_count == 0) {
-            gl_load(GetProcAddress);
-        }
-        egl_main_context = (uintptr_t)context;
-        egl_main_context_makecurrent_pending = 1;
-        egl_init_count += 1;
+        gl_load(GetProcAddress);
+        egl_inited = 1;
     }
     context_create(context, shared_context);
 }
@@ -2013,44 +2039,14 @@ void _bolt_gl_onMakeCurrent(void* context) {
             break;
         }
     }
-    if (egl_main_context_makecurrent_pending && (uintptr_t)context == egl_main_context) {
-        egl_main_context_makecurrent_pending = 0;
-        gl_init();
-        const struct PluginManagedFunctions functions = {
-            .flash_window = _bolt_flash_window,
-            .window_has_focus = _bolt_window_has_focus,
-            .surface_init = glplugin_surface_init,
-            .surface_destroy = glplugin_surface_destroy,
-            .surface_resize_and_clear = glplugin_surface_resize,
-            .draw_region_outline = glplugin_draw_region_outline,
-            .read_screen_pixels = glplugin_read_screen_pixels,
-            .copy_screen = glplugin_copy_screen,
-            .game_view_rect = glplugin_game_view_rect,
-            .player_position = glplugin_player_position,
-            .vertex_shader_init = glplugin_vertex_shader_init,
-            .fragment_shader_init = glplugin_fragment_shader_init,
-            .shader_program_init = glplugin_shaderprogram_init,
-            .shader_buffer_init = glplugin_shaderbuffer_init,
-            .shader_destroy = glplugin_shader_destroy,
-            .shader_program_destroy = glplugin_shaderprogram_destroy,
-            .shader_buffer_destroy = glplugin_shaderbuffer_destroy,
-        };
-        _bolt_plugin_init(&functions);
-    }
 }
 
-void* _bolt_gl_onDestroyContext(void* context) {
-    uint8_t do_destroy_main = 0;
-    if ((uintptr_t)context != egl_main_context) {
-        context_destroy(context);
-    } else {
-        egl_main_context_destroy_pending = 1;
-    }
-    if (context_count() == 1 && egl_main_context_destroy_pending) {
-        do_destroy_main = 1;
+void _bolt_gl_onDestroyContext(void* context) {
+    if ((uintptr_t)context == egl_main_context) {
         _bolt_plugin_close();
+        gl_terminate();
     }
-    return do_destroy_main ? (void*)egl_main_context : NULL;
+    context_destroy(context);
 }
 
 void _bolt_gl_onGenTextures(GLsizei n, GLuint* textures) {

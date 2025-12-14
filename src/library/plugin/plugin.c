@@ -151,7 +151,7 @@ static struct hashmap* plugins;
 
 #define DEFINE_CALLBACK(APINAME, STRUCTNAME) \
 void _bolt_plugin_handle_##APINAME(const struct STRUCTNAME* e) { \
-    if (!overlay_inited) return; \
+    if (!inited || !overlay_inited) return; \
     size_t iter = 0; \
     void* item; \
     while (hashmap_iter(plugins, &iter, &item)) { \
@@ -186,7 +186,7 @@ void _bolt_plugin_handle_##APINAME(const struct STRUCTNAME* e) { \
 
 #define DEFINE_WINDOWEVENT(APINAME, REGNAME, EVNAME) \
 void _bolt_plugin_window_on##APINAME(struct EmbeddedWindow* window, const struct EVNAME* event) { \
-    if (window->is_deleted) return; \
+    if (!inited || window->is_deleted) return; \
     lua_State* state = window->plugin; \
     if (window->is_browser) { \
         const enum BoltIPCMessageTypeToHost msg_type = IPC_MSG_EV##REGNAME; \
@@ -290,9 +290,9 @@ static int _bolt_api_init(lua_State* state) {
     return 1;
 }
 
-uint8_t _bolt_plugin_is_inited() {
-    return inited;
-}
+//uint8_t _bolt_plugin_is_inited() {
+//    return inited;
+//}
 
 uint8_t _bolt_monotonic_microseconds(uint64_t* microseconds) {
 #if defined(_WIN32)
@@ -726,6 +726,7 @@ static void _bolt_process_captures(uint32_t window_width, uint32_t window_height
 }
 
 void _bolt_plugin_end_frame(uint32_t window_width, uint32_t window_height) {
+    if (!inited) return;
     const uint8_t wh_valid = window_width > 1 && window_height > 1;
     if (window_width != overlay_width || window_height != overlay_height) {
         if (overlay_inited) {

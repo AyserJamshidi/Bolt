@@ -467,13 +467,7 @@ unsigned int eglDestroyContext(void* display, void* context) {
     const unsigned int ret = real_eglDestroyContext(display, context);
     if (ret) {
         pthread_mutex_lock(&egl_lock);
-        void* c = _bolt_gl_onDestroyContext(context);
-        if (c) {
-            real_eglMakeCurrent(display, NULL, NULL, c);
-            _bolt_gl_close();
-            real_eglMakeCurrent(display, NULL, NULL, NULL);
-            real_eglTerminate(display);
-        }
+        _bolt_gl_onDestroyContext(context);
         pthread_mutex_unlock(&egl_lock);
     }
     LOGF("eglDestroyContext -> %u\n", ret);

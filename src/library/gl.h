@@ -231,8 +231,6 @@ struct GLLibFunctions {
     void (*Viewport)(GLint, GLint, GLsizei, GLsizei);
 };
 
-void _bolt_gl_close();
-
 /* os-level interop */
 /// Call this in response to eglGetProcAddress or equivalent. If this function returns a non-NULL
 /// value, return it instead of allowing GetProcAddress to run as normal.
@@ -255,10 +253,8 @@ void _bolt_gl_onCreateContext(void*, void*, const struct GLLibFunctions*, void* 
 void _bolt_gl_onMakeCurrent(void*);
 
 /// Call this in response to eglDestroyContext or equivalent, if the call is successful (returns non-zero).
-/// If this function itself returns non-zero, the returned value is a context, which you should call
-/// MakeCurrent on, then call _bolt_gl_close(), then unbind the context and call eglTerminate or equivalent.
-/// Don't allow the same Terminate function to be used normally by the game.
-void* _bolt_gl_onDestroyContext(void*);
+/// Protect onCreateContext, onMakeCurrent and onDestroyContext with a mutex.
+void _bolt_gl_onDestroyContext(void*);
 
 /// Call this in response to glGenTextures, which needs to be hooked from libgl.
 void _bolt_gl_onGenTextures(GLsizei, GLuint*);

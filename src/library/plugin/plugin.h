@@ -520,7 +520,7 @@ void _bolt_plugin_init(const struct PluginManagedFunctions*);
 /// Returns true if the plugin library is initialised (i.e. init has been called more recently than
 /// close), otherwise false. This function is not thread-safe, since in a multi-threaded context,
 /// the returned value could be invalidated immediately by another thread calling plugin_init.
-uint8_t _bolt_plugin_is_inited();
+//uint8_t _bolt_plugin_is_inited();
 
 /// Sends a SwapBuffers event to all plugins, sends various queued I/O events to the relevant plugins,
 /// and finalises other tasks such as the rendering of overlays. Should be called once per frame, from a
