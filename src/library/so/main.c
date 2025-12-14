@@ -372,7 +372,7 @@ void glDrawArrays(GLenum mode, GLint first, GLsizei count) {
 }
 
 void glBindTexture(GLenum target, GLuint texture) {
-    LOG("glBindTexture\n");
+    LOGF("glBindTexture(%u, %u)\n", target, texture);
     libgl.BindTexture(target, texture);
     _bolt_gl_onBindTexture(target, texture);
     LOG("glBindTexture end\n");

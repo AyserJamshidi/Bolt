@@ -1399,7 +1399,7 @@ static void glLinkProgram(GLuint program) {
 }
 
 static void glUseProgram(GLuint program) {
-    LOG("glUseProgram\n");
+    LOGF("glUseProgram(%u)\n", program);
     gl.UseProgram(program);
     struct GLContext* c = _bolt_context();
     c->bound_program = context_get_program(c, program);
@@ -1407,7 +1407,7 @@ static void glUseProgram(GLuint program) {
 }
 
 static void glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height) {
-    LOG("glTexStorage2D\n");
+    LOGF("glTexStorage2D(%u, %i, %i)\n", target, width, height);
     gl.TexStorage2D(target, levels, internalformat, width, height);
     struct GLContext* c = _bolt_context();
     if (target == GL_TEXTURE_2D) {
@@ -1425,7 +1425,7 @@ static void glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat,
 }
 
 static void glTexStorage2DMultisample(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations) {
-    LOG("glTexStorage2DMultisample\n");
+    LOGF("glTexStorage2DMultisample(%u, %i, %i)\n", target, width, height);
     gl.TexStorage2DMultisample(target, levels, internalformat, width, height, fixedsamplelocations);
     struct GLContext* c = _bolt_context();
     if (target == GL_TEXTURE_2D_MULTISAMPLE) {
@@ -1470,7 +1470,7 @@ static void glGenBuffers(GLsizei n, GLuint* buffers) {
 }
 
 static void glBufferData(GLenum target, GLsizeiptr size, const void* data, GLenum usage) {
-    LOG("glBufferData\n");
+    LOGF("glBufferData(%u, %lu)\n", target, (unsigned long)size);
     gl.BufferData(target, size, data, usage);
     struct GLContext* c = _bolt_context();
     GLenum binding_type = buffer_binding_enum(target);
@@ -1503,7 +1503,7 @@ static void glDeleteBuffers(GLsizei n, const GLuint* buffers) {
 }
 
 static void glBindFramebuffer(GLenum target, GLuint framebuffer) {
-    LOG("glBindFramebuffer\n");
+    LOGF("glBindFramebuffer(%u, %u)\n", target, framebuffer);
     gl.BindFramebuffer(target, framebuffer);
     struct GLContext* c = _bolt_context();
     switch (target) {
@@ -1806,7 +1806,7 @@ static void glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr 
 }
 
 static void glActiveTexture(GLenum texture) {
-    LOG("glActiveTexture\n");
+    LOGF("glActiveTexture(%u)\n", texture);
     gl.ActiveTexture(texture);
     struct GLContext* c = _bolt_context();
     c->active_texture = texture - GL_TEXTURE0;
