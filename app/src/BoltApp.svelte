@@ -4,6 +4,7 @@
 	import LogView from '$lib/Components/LogView.svelte';
 	import MainLayout from '$lib/Components/MainLayout.svelte';
 	import TopBar from '$lib/Components/TopBar.svelte';
+	import News from '$lib/Components/News.svelte';
 	import { logger } from '$lib/Util/Logger';
 
 	const logs = logger.logs;
@@ -13,10 +14,13 @@
 <MainLayout>
 	<DisclaimerModal />
 	<TopBar {psa}></TopBar>
-	<div class="mt-16 grid h-full grid-flow-col grid-cols-3">
-		<div></div>
-		<Launch bind:psa></Launch>
-		<div></div>
+	<div class="mt-16 grid h-full grid-flow-col grid-cols-3 gap-4">
+		<div class="col-span-2">
+			<News />
+		</div>
+		<div class="col-span-1">
+			<Launch bind:psa></Launch>
+		</div>
 	</div>
 	<LogView logs={$logs} />
 </MainLayout>

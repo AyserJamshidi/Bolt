@@ -1,0 +1,147 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "common-gcc",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build"
+      }
+    },
+    {
+      "name": "common-clang",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_FLAGS": "-stdlib=libc++",
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build"
+      }
+    },
+    {
+      "name": "debug-gcc",
+      "displayName": "Debug GCC",
+      "description": "Configure a Debug build with Ninja & GCC.",
+      "inherits": ["common-gcc"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release-gcc",
+      "displayName": "Release GCC",
+      "description": "Configure a Release build with Ninja & GCC.",
+      "inherits": ["common-gcc"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "debug-clang",
+      "displayName": "Debug Clang",
+      "description": "Configure a Debug build with Ninja & Clang.",
+      "inherits": ["common-clang"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release-clang",
+      "displayName": "Release Clang",
+      "description": "Configure a Release build with Ninja & Clang.",
+      "inherits": ["common-clang"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "debug-clang-skip-libs",
+      "displayName": "Debug Clang: Skip Libs",
+      "description": "Configure a Debug build with Ninja & Clang, skipping library builds.",
+      "inherits": ["common-clang"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BOLT_SKIP_LIBRARIES": "1"
+      }
+    },
+    {
+      "name": "release-clang-skip-libs",
+      "displayName": "Release Clang: Skip Libs",
+      "description": "Configure a Release build with Ninja & Clang, skipping library builds.",
+      "inherits": ["common-clang"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BOLT_SKIP_LIBRARIES": "1"
+      }
+    },
+    {
+      "name": "clang-app",
+      "displayName": "Clang: Frontend with DevTools",
+      "description": "Configure a Release build with Ninja & Clang, serves the `dist` directory from disk.",
+      "inherits": ["common-clang"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BOLT_DEV_SHOW_DEVTOOLS": "1",
+        "BOLT_DEV_LAUNCHER_DIRECTORY": "1"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug-gcc",
+      "displayName": "Build Debug GCC",
+      "configurePreset": "debug-gcc",
+      "targets": ["install"]
+    },
+    {
+      "name": "release-gcc",
+      "displayName": "Build Release GCC",
+      "configurePreset": "release-gcc",
+      "targets": ["install"]
+    },
+    {
+      "name": "debug-clang",
+      "displayName": "Build Debug Clang",
+      "configurePreset": "debug-clang",
+      "targets": ["install"]
+    },
+    {
+      "name": "release-clang",
+      "displayName": "Build Release Clang",
+      "configurePreset": "release-clang",
+      "targets": ["install"]
+    },
+    {
+      "name": "debug-clang-skip-libs",
+      "displayName": "Build Debug Clang: Skip Libs",
+      "configurePreset": "debug-clang-skip-libs",
+      "targets": ["install"]
+    },
+    {
+      "name": "release-clang-skip-libs",
+      "displayName": "Build Release Clang: Skip Libs",
+      "configurePreset": "release-clang-skip-libs",
+      "targets": ["install"]
+    },
+    {
+      "name": "clang-app",
+      "displayName": "Build Clang: Frontend with DevTools",
+      "configurePreset": "clang-app",
+      "targets": ["install"]
+    }
+  ]
+}

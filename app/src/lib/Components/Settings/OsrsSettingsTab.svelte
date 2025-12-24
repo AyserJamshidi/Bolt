@@ -42,8 +42,9 @@
 
 <button
 	disabled={!selectedSession?.session_id || !selectedAccount?.accountId}
-	class="p-2 pb-5 hover:opacity-75"
+	class="p-2 pb-5 opacity-50 enabled:cursor-pointer enabled:opacity-100 enabled:hover:opacity-75"
 	onclick={() => launchConfigure()}
+	title="Sign in to an account to enable"
 >
 	<div class="flex">
 		<img
@@ -54,7 +55,7 @@
 		Configure RuneLite
 	</div>
 </button>
-<div class="mx-auto border-t-2 border-slate-300 p-2 pt-5 dark:border-slate-800">
+<div class="mx-auto border-slate-300 p-1 dark:border-slate-800">
 	<label for="use_custom_jar">Use custom RuneLite JAR: </label>
 	<input
 		id="use_custom_jar"
@@ -80,7 +81,7 @@
 		Select File</button
 	>
 </div>
-<div class="p-2">
+<div class="p-1">
 	<label for="osrs_custom_launch_command">OSRS launch command:</label>
 	<br />
 	<textarea
@@ -92,7 +93,7 @@
 		bind:value={$config.osrs_launch_command}
 	></textarea>
 </div>
-<div class="p-2">
+<div class="p-1">
 	<label for="runelite_custom_launch_command">RuneLite launch command:</label>
 	<br />
 	<textarea
@@ -104,7 +105,7 @@
 		bind:value={$config.runelite_launch_command}
 	></textarea>
 </div>
-<div class="p-2">
+<div class="p-1">
 	<label for="hdos_custom_launch_command">HDOS launch command:</label>
 	<br />
 	<textarea
