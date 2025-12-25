@@ -12,7 +12,7 @@ import BoltApp from '@/BoltApp.svelte';
 import { get } from 'svelte/store';
 import { mount } from 'svelte';
 
-let app: BoltApp | AuthApp;
+let app: ReturnType<typeof mount> | null = null;
 const appConfig = {
 	target: document.getElementById('app') as HTMLElement
 };
