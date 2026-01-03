@@ -11,14 +11,17 @@
 	const logs = logger.logs;
 	let psa: string | null = null;
 	const { config } = GlobalState;
+
+	const mainClass = 'mt-16 grid h-full grid-flow-col grid-cols-2 sm:grid-cols-3';
+	const mainClassNoNews = 'mt-16 grid h-full grid-flow-col grid-cols-3';
 </script>
 
 <MainLayout>
 	<DisclaimerModal />
 	<TopBar {psa}></TopBar>
-	<div class="mt-16 grid h-full grid-flow-col grid-cols-3">
+	<div class={$config.fetch_rss_feeds ? mainClass : mainClassNoNews}>
 		{#if $config.fetch_rss_feeds}
-			<div class="col-span-2">
+			<div class="col-span-1 sm:col-span-2">
 				<News />
 			</div>
 			<div class="col-span-1 -ml-4">

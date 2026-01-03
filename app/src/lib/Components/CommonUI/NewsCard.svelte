@@ -37,16 +37,17 @@
 			style="aspect-ratio: 1 / 1;"
 		>
 			<div class="flex h-full flex-col">
-				<h2 class="text-md mb-2 font-semibold text-slate-900 dark:text-slate-100">
+				<h2
+					class="text-md mb-2 overflow-hidden font-semibold leading-tight text-slate-900 dark:text-slate-100"
+					style="max-height:30%;"
+				>
 					{newsItem.title}
 				</h2>
-				<img
-					src={newsItem.imageUrl}
-					alt={newsItem.title}
-					class="mb-2 h-1/2 w-full rounded object-cover"
-				/>
-
-				<div class="mt-auto">
+				<div class="flex-1"></div>
+				<div class="mb-2 w-full overflow-hidden rounded" style="height:50%;">
+					<img src={newsItem.imageUrl} alt={newsItem.title} class="h-full w-full object-cover" />
+				</div>
+				<div>
 					<p class="text-sm text-slate-600 dark:text-slate-400">{newsItem.date}</p>
 				</div>
 			</div>
