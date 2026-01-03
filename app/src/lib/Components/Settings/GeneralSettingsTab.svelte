@@ -21,6 +21,8 @@
 	const closeAfterLaunchDesc = 'Close the launcher immediately after launching a game';
 	const discardExpiredLoginsDesc =
 		"Discard login sessions if they're no longer valid, prompting the player to sign-in again. If unchecked, the only way to discard a login will be by manually pressing the 'log out' button, even if your login no longer works.";
+	const fetchRssFeedsDesc =
+		'Enable fetching RSS feeds for news and updates. Disabling this will reduce the number of web requests made when opening the launcher.';
 </script>
 
 <button
@@ -48,6 +50,10 @@
 		bind:checked={$config.check_announcements}
 		class="ml-2"
 	/>
+</div>
+<div class="mx-auto p-2" title={fetchRssFeedsDesc}>
+	<label for="fetch_rss_feeds">Fetch RSS feeds: </label>
+	<input id="fetch_rss_feeds" type="checkbox" bind:checked={$config.fetch_rss_feeds} class="ml-2" />
 </div>
 <div class="mx-auto p-2" title={closeAfterLaunchDesc}>
 	<label for="close_after_launch">Close Bolt after launching a game: </label>

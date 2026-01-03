@@ -12,6 +12,7 @@ export interface Config {
 	rs_plugin_loader: boolean;
 	close_after_launch: boolean;
 	check_announcements: boolean;
+	fetch_rss_feeds: boolean;
 	flatpak_rich_presence: boolean;
 	runelite_use_custom_jar: boolean;
 	use_custom_rs_config_uri: boolean;
@@ -38,6 +39,7 @@ export const defaultConfig: Config = {
 	rs_plugin_loader: false,
 	close_after_launch: false,
 	check_announcements: true,
+	fetch_rss_feeds: true,
 	flatpak_rich_presence: false,
 	runelite_use_custom_jar: false,
 	use_custom_rs_config_uri: false,
@@ -66,6 +68,7 @@ export function initConfig() {
 			typeof conf.rs_plugin_loader === 'boolean' &&
 			typeof conf.close_after_launch === 'boolean' &&
 			typeof conf.check_announcements === 'boolean' &&
+			typeof conf.fetch_rss_feeds === 'boolean' &&
 			typeof conf.flatpak_rich_presence === 'boolean' &&
 			typeof conf.runelite_use_custom_jar === 'boolean' &&
 			typeof conf.selected === 'object' &&
@@ -83,6 +86,10 @@ export function initConfig() {
 			const parsedConfig = JSON.parse(configParam);
 			if (typeof parsedConfig.check_announcements === 'undefined') {
 				parsedConfig.check_announcements = true;
+				GlobalState.configHasPendingChanges = true;
+			}
+			if (typeof parsedConfig.fetch_rss_feeds === 'undefined') {
+				parsedConfig.fetch_rss_feeds = true;
 				GlobalState.configHasPendingChanges = true;
 			}
 			if (typeof parsedConfig.close_after_launch === 'undefined') {

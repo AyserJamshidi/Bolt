@@ -99,7 +99,7 @@
 <LaunchConfirmModal bind:this={confirmModal}></LaunchConfirmModal>
 <PluginModal bind:this={pluginModal}></PluginModal>
 
-<div class="bg-grad flex h-full flex-col border-slate-300 p-5 duration-200 dark:border-slate-800">
+<div class="bg-grad flex h-full flex-col border-slate-300 pt-5 duration-200 dark:border-slate-800">
 	<div class="flex flex-col items-center gap-4">
 		<img
 			src="svgs/rocket-solid.svg"
