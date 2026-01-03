@@ -7,10 +7,28 @@
 	}
 
 	export let newsItem: NewsItem | undefined;
+	export let loading: boolean = false;
 </script>
 
 <div>
-	{#if newsItem}
+	{#if loading}
+		<div
+			class="news-card block cursor-pointer overflow-hidden rounded-lg border border-slate-300 bg-transparent p-3 shadow-md duration-200 dark:border-slate-800 dark:bg-slate-900"
+			style="aspect-ratio: 1 / 1;"
+		>
+			<div class="flex h-full flex-col">
+				<div
+					class="mb-2 h-5 w-3/4 animate-pulse rounded bg-slate-300/40 dark:bg-slate-800/40"
+				></div>
+				<div
+					class="mb-2 h-1/2 w-full animate-pulse rounded bg-slate-300/40 dark:bg-slate-800/40"
+				></div>
+				<div class="mt-auto">
+					<div class="h-4 w-1/3 animate-pulse rounded bg-slate-300/40 dark:bg-slate-800/40"></div>
+				</div>
+			</div>
+		</div>
+	{:else if newsItem}
 		<a
 			href={newsItem.url}
 			target="_blank"

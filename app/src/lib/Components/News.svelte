@@ -9,6 +9,7 @@
 	const { config } = GlobalState;
 
 	let newsItems: Array<{ title: string; imageUrl: string; url: string; date: string }> = [];
+	let loading: boolean = true;
 
 	const CACHE_KEY_OSRS = 'bolt:news:feed-osrs';
 	const CACHE_TS_KEY_OSRS = 'bolt:news:feed:ts-osrs';
@@ -42,6 +43,7 @@
 	};
 
 	export const fetchNews = async () => {
+		loading = true;
 		const IS_OSRS = $config.selected.game === Game.osrs;
 		const CACHE_KEY = IS_OSRS ? CACHE_KEY_OSRS : CACHE_KEY_RS3;
 		const CACHE_TS_KEY = IS_OSRS ? CACHE_TS_KEY_OSRS : CACHE_TS_KEY_RS3;
@@ -53,6 +55,7 @@
 			// Use cached if fresh
 			if (rawCached && now - cachedTs < CACHE_TTL) {
 				parseAndSet(rawCached);
+				loading = false;
 				return;
 			}
 
@@ -82,12 +85,16 @@
 				parseAndSet(rawCached);
 			}
 		}
+
+		loading = false;
 	};
 
 	onMount(async () => {
 		await fetchNews();
 		config.subscribe(() => {
-			fetchNews();
+			if ($config.fetch_rss_feeds) {
+				fetchNews();
+			}
 		});
 	});
 </script>
@@ -96,9 +103,15 @@
 	<div
 		class="grid auto-rows-fr grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
 	>
-		{#each newsItems as newsItem (newsItem.url)}
-			<NewsCard {newsItem} />
-		{/each}
+		{#if loading}
+			{#each Array(8)}
+				<NewsCard loading={true} newsItem={undefined} />
+			{/each}
+		{:else}
+			{#each newsItems as newsItem (newsItem.url)}
+				<NewsCard {newsItem} />
+			{/each}
+		{/if}
 	</div>
 </div>
 
