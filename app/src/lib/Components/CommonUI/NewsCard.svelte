@@ -35,6 +35,10 @@
 			rel="noopener noreferrer"
 			class="news-card block cursor-pointer overflow-hidden rounded-lg border border-slate-300 bg-slate-100 p-3 shadow-md duration-200 hover:opacity-75 dark:border-slate-800 dark:bg-slate-900"
 			style="aspect-ratio: 1 / 1;"
+			onclick={(evt) => {
+				evt.preventDefault();
+				fetch('/open-external-url', { method: 'POST', body: newsItem.url });
+			}}
 		>
 			<div class="flex h-full flex-col">
 				<h2

@@ -21,11 +21,30 @@
 	let accounts = $derived(BoltService.findSession($config.selected.user_id)?.accounts ?? []);
 
 	// messages about game downtime, retrieved from game server
-	let { psa = $bindable() } = $props();
+	let {
+		psa = $bindable(),
+		osrsPsaFetched = $bindable(false),
+		rs3PsaFetched = $bindable(false)
+	} = $props();
+
 	let gameEnabled: boolean = true;
 	$effect(() => {
 		if ($config.check_announcements) {
 			const gameName = $config.selected.game == Game.osrs ? 'osrs' : bolt.env.provider;
+
+			if (
+				(gameName === 'osrs' && osrsPsaFetched) ||
+				(gameName === bolt.env.provider && rs3PsaFetched)
+			) {
+				return;
+			}
+
+			if ($config.selected.game == Game.osrs) {
+				osrsPsaFetched = true;
+			} else if ($config.selected.game == Game.rs3) {
+				rs3PsaFetched = true;
+			}
+
 			const url: string = `${bolt.env.psa_url}${gameName}/${gameName}.json`;
 			// added no-store due to an issue where new messages are not shown until cache is cleared.
 			// remote server appears to be using etags incorrectly?
@@ -34,6 +53,9 @@
 				.then((response) => {
 					psa = response.psaEnabled && response.psaMessage ? response.psaMessage : null;
 					gameEnabled = !(response.playDisabled ?? false);
+					if (psa) {
+						logger.warn(`${gameName}: ${psa}`);
+					}
 				});
 		} else {
 			psa = null;

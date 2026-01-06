@@ -10,6 +10,8 @@
 
 	const logs = logger.logs;
 	let psa: string | null = null;
+	let osrsPsaFetched = false;
+	let rs3PsaFetched = false;
 	const { config } = GlobalState;
 
 	const mainClass = 'mt-16 grid h-full grid-flow-col grid-cols-2 sm:grid-cols-3';
@@ -18,18 +20,18 @@
 
 <MainLayout>
 	<DisclaimerModal />
-	<TopBar {psa}></TopBar>
+	<TopBar />
 	<div class={$config.fetch_rss_feeds ? mainClass : mainClassNoNews}>
 		{#if $config.fetch_rss_feeds}
 			<div class="col-span-1 sm:col-span-2">
 				<News />
 			</div>
 			<div class="col-span-1 -ml-4">
-				<Launch bind:psa></Launch>
+				<Launch bind:psa bind:osrsPsaFetched bind:rs3PsaFetched></Launch>
 			</div>
 		{:else}
 			<div class="col-span-1 col-start-2">
-				<Launch bind:psa></Launch>
+				<Launch bind:psa bind:osrsPsaFetched bind:rs3PsaFetched></Launch>
 			</div>
 		{/if}
 	</div>
