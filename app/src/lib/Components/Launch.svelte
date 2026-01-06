@@ -21,29 +21,19 @@
 	let accounts = $derived(BoltService.findSession($config.selected.user_id)?.accounts ?? []);
 
 	// messages about game downtime, retrieved from game server
-	let {
-		psa = $bindable(),
-		osrsPsaFetched = $bindable(false),
-		rs3PsaFetched = $bindable(false)
-	} = $props();
+	let { osrsPsa = $bindable(), rs3Psa = $bindable() } = $props();
 
 	let gameEnabled: boolean = true;
 	$effect(() => {
 		if ($config.check_announcements) {
-			const gameName = $config.selected.game == Game.osrs ? 'osrs' : bolt.env.provider;
-
 			if (
-				(gameName === 'osrs' && osrsPsaFetched) ||
-				(gameName === bolt.env.provider && rs3PsaFetched)
+				($config.selected.game === Game.osrs && osrsPsa) ||
+				($config.selected.game === Game.rs3 && rs3Psa)
 			) {
 				return;
 			}
 
-			if ($config.selected.game == Game.osrs) {
-				osrsPsaFetched = true;
-			} else if ($config.selected.game == Game.rs3) {
-				rs3PsaFetched = true;
-			}
+			const gameName = $config.selected.game == Game.osrs ? 'osrs' : bolt.env.provider;
 
 			const url: string = `${bolt.env.psa_url}${gameName}/${gameName}.json`;
 			// added no-store due to an issue where new messages are not shown until cache is cleared.
@@ -51,14 +41,22 @@
 			fetch(url, { method: 'GET', cache: 'no-store' })
 				.then((response) => response.json())
 				.then((response) => {
-					psa = response.psaEnabled && response.psaMessage ? response.psaMessage : null;
+					let psa = response.psaEnabled && response.psaMessage ? response.psaMessage : null;
 					gameEnabled = !(response.playDisabled ?? false);
 					if (psa) {
-						logger.warn(`${gameName}: ${psa}`);
+						switch ($config.selected.game) {
+							case Game.osrs:
+								osrsPsa = psa;
+								break;
+							case Game.rs3:
+								rs3Psa = psa;
+								break;
+						}
 					}
 				});
 		} else {
-			psa = null;
+			osrsPsa = null;
+			rs3Psa = null;
 			gameEnabled = true;
 		}
 	});

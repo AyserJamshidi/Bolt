@@ -4,12 +4,14 @@
 	import { GlobalState } from '$lib/State/GlobalState';
 	import { Game } from '$lib/Util/Interfaces';
 
+	let { osrsPsa = $bindable(), rs3Psa = $bindable() } = $props();
+
 	const RSS_URL = 'aHR0cHM6Ly9zZWN1cmUucnVuZXNjYXBlLmNvbS9tPW5ld3MvbGF0ZXN0X25ld3MucnNz';
 	const DECODED_RSS = atob(RSS_URL);
 	const { config } = GlobalState;
 
-	let newsItems: Array<{ title: string; imageUrl: string; url: string; date: string }> = [];
-	let loading: boolean = true;
+	let newsItems: Array<{ title: string; imageUrl: string; url: string; date: string }> = $state([]);
+	let loading: boolean = $state(true);
 
 	const CACHE_KEY_OSRS = 'bolt:news:feed-osrs';
 	const CACHE_TS_KEY_OSRS = 'bolt:news:feed:ts-osrs';
@@ -89,6 +91,9 @@
 		loading = false;
 	};
 
+	let psaClass =
+		'sticky mb-5 w-full animate-pulse rounded border border-amber-500 bg-slate-100 p-2 shadow-md duration-200 dark:bg-slate-900';
+
 	onMount(async () => {
 		await fetchNews();
 		config.subscribe(() => {
@@ -100,6 +105,15 @@
 </script>
 
 <div class="no-scrollbar max-h-[calc(80vh-6rem)] min-h-0 overflow-auto p-4">
+	{#if osrsPsa && $config.selected.game === Game.osrs}
+		<div class={psaClass}>
+			{osrsPsa}
+		</div>
+	{:else if rs3Psa && $config.selected.game === Game.rs3}
+		<div class={psaClass}>
+			{rs3Psa}
+		</div>
+	{/if}
 	<div
 		class="grid auto-rows-fr grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
 	>

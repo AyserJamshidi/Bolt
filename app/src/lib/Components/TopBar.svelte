@@ -19,7 +19,7 @@
 >
 	<div class="m-3 ml-9 font-bold">
 		<button
-			class="mx-1 w-20 rounded-lg border-2 border-blue-500 p-2 duration-200 hover:opacity-75"
+			class="mx-1 w-20 rounded-lg border-2 border-blue-500 p-1 duration-200 hover:opacity-75"
 			class:text-black={$config.selected.game === Game.rs3}
 			class:bg-blue-500={$config.selected.game === Game.rs3}
 			onclick={() => {
@@ -29,7 +29,7 @@
 			RS3
 		</button>
 		<button
-			class="mx-1 w-20 rounded-lg border-2 border-blue-500 bg-blue-500 p-2 text-black duration-200 hover:opacity-75"
+			class="mx-1 w-20 rounded-lg border-2 border-blue-500 bg-blue-500 p-1 text-black duration-200 hover:opacity-75"
 			class:text-black={$config.selected.game === Game.osrs}
 			class:bg-blue-500={$config.selected.game === Game.osrs}
 			onclick={() => {
