@@ -28,19 +28,20 @@
 	let gameEnabled: boolean = true;
 	$effect(() => {
 		if ($config.check_announcements) {
-			if (Date.now() - psaFetchedAt < PSA_FETCH_INTERVAL_MS) {
+			const now = Date.now();
+			if (now - psaFetchedAt < PSA_FETCH_INTERVAL_MS) {
 				return;
 			}
 
 			for (const game of [Game.osrs, Game.rs3]) {
 				const gameName = game == Game.osrs ? 'osrs' : bolt.env.provider;
-				const url: string = `${bolt.env.psa_url}${gameName}/${gameName}.json`;
+				const url: string = `${bolt.env.psa_url}${gameName}/${gameName}.json?ts=${now}`;
 				// added no-store due to an issue where new messages are not shown until cache is cleared.
 				// remote server appears to be using etags incorrectly?
 				fetch(url, { method: 'GET', cache: 'no-store' })
 					.then((response) => response.json())
 					.then((response) => {
-						psaFetchedAt = Date.now();
+						psaFetchedAt = now;
 						let psa = response.psaEnabled && response.psaMessage ? response.psaMessage : null;
 						gameEnabled = !(response.playDisabled ?? false);
 						if (psa) {
