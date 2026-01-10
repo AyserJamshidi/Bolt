@@ -22,38 +22,39 @@
 
 	// messages about game downtime, retrieved from game server
 	let { osrsPsa = $bindable(), rs3Psa = $bindable() } = $props();
+	const PSA_FETCH_INTERVAL_MS = 60_000;
+	let psaFetchedAt: number = 0;
 
 	let gameEnabled: boolean = true;
 	$effect(() => {
 		if ($config.check_announcements) {
-			if (
-				($config.selected.game === Game.osrs && osrsPsa) ||
-				($config.selected.game === Game.rs3 && rs3Psa)
-			) {
+			if (Date.now() - psaFetchedAt < PSA_FETCH_INTERVAL_MS) {
 				return;
 			}
 
-			const gameName = $config.selected.game == Game.osrs ? 'osrs' : bolt.env.provider;
-
-			const url: string = `${bolt.env.psa_url}${gameName}/${gameName}.json`;
-			// added no-store due to an issue where new messages are not shown until cache is cleared.
-			// remote server appears to be using etags incorrectly?
-			fetch(url, { method: 'GET', cache: 'no-store' })
-				.then((response) => response.json())
-				.then((response) => {
-					let psa = response.psaEnabled && response.psaMessage ? response.psaMessage : null;
-					gameEnabled = !(response.playDisabled ?? false);
-					if (psa) {
-						switch ($config.selected.game) {
-							case Game.osrs:
-								osrsPsa = psa;
-								break;
-							case Game.rs3:
-								rs3Psa = psa;
-								break;
+			for (const game of [Game.osrs, Game.rs3]) {
+				const gameName = game == Game.osrs ? 'osrs' : bolt.env.provider;
+				const url: string = `${bolt.env.psa_url}${gameName}/${gameName}.json`;
+				// added no-store due to an issue where new messages are not shown until cache is cleared.
+				// remote server appears to be using etags incorrectly?
+				fetch(url, { method: 'GET', cache: 'no-store' })
+					.then((response) => response.json())
+					.then((response) => {
+						psaFetchedAt = Date.now();
+						let psa = response.psaEnabled && response.psaMessage ? response.psaMessage : null;
+						gameEnabled = !(response.playDisabled ?? false);
+						if (psa) {
+							switch (game) {
+								case Game.osrs:
+									osrsPsa = psa;
+									break;
+								case Game.rs3:
+									rs3Psa = psa;
+									break;
+							}
 						}
-					}
-				});
+					});
+			}
 		} else {
 			osrsPsa = null;
 			rs3Psa = null;
