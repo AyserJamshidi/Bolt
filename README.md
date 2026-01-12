@@ -9,12 +9,18 @@
     - [Mac](#mac)
   - [Maintenance](#maintenance)
   - [Troubleshooting](#troubleshooting)
+  - [Contributing](#contributing)
   - [Credit](#credit)
   - [Disclaimer](#disclaimer)
 
 # Bolt
 
 A third-party launcher for your favourite MMO
+
+<p align="center">
+  <img src="./screenshot/dark.png" alt="Bolt screenshot" width="49%"/>
+  <img src="./screenshot/light.png" alt="Bolt screenshot" width="49%"/>
+</p>
 
 ## Contact
 
@@ -62,7 +68,7 @@ Now you can start building. Open a command window or terminal in the root direct
 
 ### Linux
 
-If building with GCC, you need version 13.1 or later. If building with Clang, you need version 14 or later.
+If building with GCC, you need version 13.1 or later. If building with Clang, you need version 16 or later.
 - `cmake -S . -B build -D CMAKE_BUILD_TYPE=Release`
   - note: you'll need to specify either `-D BOLT_LUAJIT_INCLUDE_DIR=/usr/include/luajit-2.1` OR `-D BOLT_SKIP_LIBRARIES=1` depending on whether you want to build the plugin library
   - note: build types "Debug" and "Release" are supported
@@ -72,6 +78,19 @@ If building with GCC, you need version 13.1 or later. If building with Clang, yo
 - `cmake --install build --prefix build`
   - note: the last line creates a staging build in the `build` directory, this needs to be done between changing and running the program every time
   - note: if a `--prefix` is not specified, Bolt will be installed to /usr/local, requiring root privileges
+
+---
+
+Alternatively, you can use the `CMakePresets.json` file to simplify some of the above steps.
+For example, to build with Clang and Ninja in Release mode, run:
+```sh
+cmake --preset release-clang
+cmake --build --preset release-clang
+```
+This will also run the install step with the prefix set to `build/`.
+Check the `json` file for other presets you can use.
+
+---
 
 After that, the helper script `./build/bolt.sh` can be used to launch Bolt from its staging location.
 
@@ -109,6 +128,16 @@ When doing the initial cmake setup step, the following options exist which you m
 - `-D BOLT_HTML_DIR=/some/directory`: the location of the launcher's internal webpage content, `$PWD/app/dist` by default (note: must be an ABSOLUTE path)
 - `-D BOLT_DEV_SHOW_DEVTOOLS=1`: enables chromium developer tools for the launcher
 - `-D BOLT_DEV_LAUNCHER_DIRECTORY=1`: instead of embedding the contents of BOLT_HTML_DIR into the output executable, the files will be served from disk at runtime; on supported platforms the launcher will automatically reload the page when those files are changed
+
+---
+
+There is a CMake preset that sets the `BOLT_DEV` options; useful for `app` development. You can use it like so:
+```sh
+cmake --preset clang-app
+cmake --build --preset clang-app
+```
+
+---
 
 ## Troubleshooting
 

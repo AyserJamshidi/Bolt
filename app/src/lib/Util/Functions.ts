@@ -14,9 +14,10 @@ const hdosGetdownURL = 'https://cdn.hdos.dev/client/getdown.txt';
 
 // returns the RequestInit that should be passed to `fetch` for the given request body
 // the request body is optional: method will be GET if no request body is given, POST otherwise
-const createInitFromUpload = (body?: Uint8Array | ArrayBuffer | null): RequestInit => {
+const createInitFromUpload = (body?: BodyInit | Uint8Array | ArrayBuffer | null): RequestInit => {
 	if (!body) return requestInitGet;
-	return { method: 'POST', headers: requestHeadersUpload, body };
+	const wrapped = body instanceof Uint8Array ? body.buffer : body;
+	return { method: 'POST', headers: requestHeadersUpload, body: wrapped as unknown as BodyInit };
 };
 
 // fetches the URL, and if the response is 2xx then calls the response handler

@@ -20,12 +20,13 @@
 	</div>
 	<ol
 		id="message_list"
-		class="h-full list-inside list-disc overflow-y-auto pl-5 pt-1 marker:text-blue-500"
+		class="h-full list-inside list-disc overflow-y-auto pl-5 pr-16 pt-1 marker:text-blue-500"
 	>
 		{#each logs as { date, severity, content }}
 			<li
-				class:text-rose-500={severity === Severity.error}
-				class:text-orange-700={severity === Severity.warn}
+				class:text-red-500={severity === Severity.error}
+				class:text-amber-500={severity === Severity.warn}
+				class:text-blue-500={severity === Severity.info}
 			>
 				{date?.toLocaleTimeString()}
 				- {content}

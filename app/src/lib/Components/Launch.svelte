@@ -21,22 +21,44 @@
 	let accounts = $derived(BoltService.findSession($config.selected.user_id)?.accounts ?? []);
 
 	// messages about game downtime, retrieved from game server
-	let { psa = $bindable() } = $props();
+	let { osrsPsa = $bindable(), rs3Psa = $bindable() } = $props();
+	const PSA_FETCH_INTERVAL_MS = 60_000;
+	let psaFetchedAt: number = 0;
+
 	let gameEnabled: boolean = true;
 	$effect(() => {
 		if ($config.check_announcements) {
-			const gameName = $config.selected.game == Game.osrs ? 'osrs' : bolt.env.provider;
-			const url: string = `${bolt.env.psa_url}${gameName}/${gameName}.json`;
-			// added no-store due to an issue where new messages are not shown until cache is cleared.
-			// remote server appears to be using etags incorrectly?
-			fetch(url, { method: 'GET', cache: 'no-store' })
-				.then((response) => response.json())
-				.then((response) => {
-					psa = response.psaEnabled && response.psaMessage ? response.psaMessage : null;
-					gameEnabled = !(response.playDisabled ?? false);
-				});
+			const now = Date.now();
+			if (now - psaFetchedAt < PSA_FETCH_INTERVAL_MS) {
+				return;
+			}
+
+			for (const game of [Game.osrs, Game.rs3]) {
+				const gameName = game == Game.osrs ? 'osrs' : bolt.env.provider;
+				const url: string = `${bolt.env.psa_url}${gameName}/${gameName}.json?ts=${now}`;
+				// added no-store due to an issue where new messages are not shown until cache is cleared.
+				// remote server appears to be using etags incorrectly?
+				fetch(url, { method: 'GET', cache: 'no-store' })
+					.then((response) => response.json())
+					.then((response) => {
+						psaFetchedAt = now;
+						let psa = response.psaEnabled && response.psaMessage ? response.psaMessage : null;
+						gameEnabled = !(response.playDisabled ?? false);
+						if (psa) {
+							switch (game) {
+								case Game.osrs:
+									osrsPsa = psa;
+									break;
+								case Game.rs3:
+									rs3Psa = psa;
+									break;
+							}
+						}
+					});
+			}
 		} else {
-			psa = null;
+			osrsPsa = null;
+			rs3Psa = null;
 			gameEnabled = true;
 		}
 	});
@@ -99,7 +121,7 @@
 <LaunchConfirmModal bind:this={confirmModal}></LaunchConfirmModal>
 <PluginModal bind:this={pluginModal}></PluginModal>
 
-<div class="bg-grad flex h-full flex-col border-slate-300 p-5 duration-200 dark:border-slate-800">
+<div class="bg-grad flex h-full flex-col border-slate-300 pt-5 duration-200 dark:border-slate-800">
 	<div class="flex flex-col items-center gap-4">
 		<img
 			src="svgs/rocket-solid.svg"
