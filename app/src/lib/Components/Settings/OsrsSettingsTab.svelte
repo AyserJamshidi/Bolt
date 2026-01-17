@@ -21,36 +21,17 @@
 		console.log('done picking');
 		currentlyPickingFile = false;
 	}
-
-	function launchConfigure(): void {
-		if (
-			!selectedSession?.session_id ||
-			!selectedAccount?.accountId ||
-			!selectedAccount?.displayName
-		) {
-			return;
-		}
-
-		launchRuneLite(
-			selectedSession.session_id,
-			selectedAccount.accountId,
-			selectedAccount.displayName,
-			true
-		);
-	}
 </script>
 
 <button
-	disabled={!selectedSession?.session_id || !selectedAccount?.accountId}
-	class="p-2 pb-5 opacity-50 enabled:cursor-pointer enabled:opacity-100 enabled:hover:opacity-75"
-	onclick={() => launchConfigure()}
-	title="Sign in to an account to enable"
+	class="p-2 mb-5 rounded-lg text-black text-sm bg-blue-500 opacity-50 enabled:cursor-pointer enabled:duration-200 enabled:opacity-100 enabled:hover:opacity-75"
+	onclick={() => launchRuneLite(null, null, null, true)}
 >
 	<div class="flex">
 		<img
-			src="svgs/wrench-solid.svg"
+			src="svgs/external-link.svg"
 			alt="Configure RuneLite"
-			class="mr-2 h-7 w-7 rounded-lg bg-pink-500 p-1"
+			class="mr-2 w-4 h-4"
 		/>
 		Configure RuneLite
 	</div>
@@ -72,7 +53,7 @@
 	></textarea>
 	<br />
 	<button
-		class="mt-1 rounded-lg border-2 border-blue-500 p-1 duration-200 enabled:hover:opacity-75"
+		class="px-2 py-1 mt-1 rounded-lg border-2 border-blue-500 duration-200 enabled:hover:opacity-75"
 		disabled={currentlyPickingFile || !$config.runelite_use_custom_jar}
 		onclick={() => {
 			openFilePicker();
