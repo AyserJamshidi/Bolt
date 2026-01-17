@@ -25,23 +25,6 @@
 		'Enable fetching RSS feeds for news and updates. Disabling this will reduce the number of web requests made when opening the launcher.';
 </script>
 
-<button
-	id="data_dir_button"
-	class="p-2 hover:opacity-75"
-	onclick={() => {
-		openDataDir();
-	}}
->
-	<div class="flex">
-		<img
-			src="svgs/database-solid.svg"
-			alt="Browse app data"
-			class="mr-2 h-7 w-7 rounded-lg bg-violet-500 p-1"
-		/>
-		Browse App Data
-	</div>
-</button>
-
 <div class="mx-auto p-2" title={checkAnnouncementsDesc}>
 	<label for="check_announcements">Check game announcements: </label>
 	<input
@@ -73,3 +56,17 @@
 		class="ml-2"
 	/>
 </div>
+<br>
+<button
+	class="p-2 mb-5 rounded-lg text-black text-sm bg-blue-500 opacity-50 enabled:cursor-pointer enabled:duration-200 enabled:opacity-100 enabled:hover:opacity-75"
+	onclick={openDataDir}
+>
+	<div class="flex">
+		<img
+			src="svgs/external-link.svg"
+			alt="Configure RuneLite"
+			class="mr-2 w-4 h-4"
+		/>
+		Browse App Data
+	</div>
+</button>
