@@ -100,9 +100,9 @@ const downloadWithProgress = async (
 
 // asynchronously download and launch RS3's official .deb client using the given env variables
 export function launchRS3Linux(
-	jx_session_id: string,
-	jx_character_id: string,
-	jx_display_name: string
+	jx_session_id: string | null,
+	jx_character_id: string | null,
+	jx_display_name: string | null,
 ) {
 	const launch = (hash?: string, deb?: Uint8Array) => {
 		const params: Record<string, string> = {};
@@ -178,9 +178,9 @@ export function launchRS3Linux(
 // then attempt to launch it with the given env variables
 // last param indices whether --configure will be passed or not
 export function launchRuneLite(
-	jx_session_id: string,
-	jx_character_id: string,
-	jx_display_name: string,
+	jx_session_id: string | null,
+	jx_character_id: string | null,
+	jx_display_name: string | null,
 	configure: boolean
 ) {
 	const launchPath = configure ? '/launch-runelite-jar-configure?' : '/launch-runelite-jar?';
@@ -270,9 +270,9 @@ export function launchRuneLite(
 
 // locate hdos's .jar from their CDN, then attempt to launch it with the given env variables
 export function launchHdos(
-	jx_session_id: string,
-	jx_character_id: string,
-	jx_display_name: string
+	jx_session_id: string | null,
+	jx_character_id: string | null,
+	jx_display_name: string | null,
 ) {
 	const config = get(GlobalState.config);
 
@@ -354,9 +354,9 @@ export function requestNewClientListPromise(): void {
 export function launchOfficialClient(
 	windows: boolean,
 	osrs: boolean,
-	jx_session_id: string,
-	jx_character_id: string,
-	jx_display_name: string
+	jx_session_id: string | null,
+	jx_character_id: string | null,
+	jx_display_name: string | null,
 ) {
 	const metaPath: string = `${osrs ? 'osrs' : bolt.env.provider}-${windows ? 'win' : 'mac'}`;
 	const metaGameName: 'osrs' | 'rs3' = osrs ? 'osrs' : 'rs3';
