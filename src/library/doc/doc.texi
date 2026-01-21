@@ -499,6 +499,18 @@ local id = bolt.characterid()
 @end verbatim
 @end example
 
+
+@node functions-charactername
+@section charactername
+
+Returns a string specifying the character (display) name. Note that this name can be changed by the player and should thus not be used to uniquely identify the player. For this, use @ref{functions-characterid}.
+
+@example lua
+@verbatim
+local name = bolt.charactername()
+@end verbatim
+@end example
+
 @node functions-loadfile
 @section loadfile
 

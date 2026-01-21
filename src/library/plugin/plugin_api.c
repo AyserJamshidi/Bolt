@@ -297,6 +297,16 @@ static int api_playerposition(lua_State* state) {
     return 1;
 }
 
+static int api_charactername(lua_State* state) {
+    const char* character_id = getenv("JX_DISPLAY_NAME");
+    if (character_id != NULL) {
+      lua_pushstring(state, character_id);
+    } else {
+      lua_pushnil(state);
+    }
+    return 1;
+}
+
 static int api_gamewindowsize(lua_State* state) {
     int w, h;
     _bolt_plugin_overlay_size(&w, &h);
@@ -2303,6 +2313,7 @@ static struct ApiFuncTemplate bolt_functions[] = {
     BOLTFUNC(flashwindow),
     BOLTFUNC(isfocused),
     BOLTFUNC(characterid),
+    BOLTFUNC(charactername),
     BOLTFUNC(loadfile),
     BOLTFUNC(loadconfig),
     BOLTFUNC(saveconfig),
