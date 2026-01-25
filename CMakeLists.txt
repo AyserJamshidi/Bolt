@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21) # Minimum CEF requirement, but building with the latest cmake is strongly recommended
-project(Bolt VERSION 0.19 LANGUAGES C CXX)
+project(Bolt VERSION 0.21 LANGUAGES C CXX)
 
 # The name of the executable - "{}.exe" on windows, both "/usr/bin/{}" and "/opt/bolt-launcher/{}" on other platforms
 set(BOLT_EXE_NAME bolt)
@@ -68,6 +68,28 @@ if(NOT WIN32)
         "    </screenshot>"
         "</screenshots>"
         "<releases>"
+        "    <release version=\"0.21.0\" date=\"2026-01-25\">"
+        "        <url type=\"details\">https://github.com/Adamcake/Bolt/releases/tag/0.21.0</url>"
+        "        <description>"
+        "            <p>Bugs fixed, several UI changes</p>"
+        "            <p>Plugin library:</p>"
+        "            <ul>"
+        "                <li>Reworked the plugin menu to hopefully be more intuitive and require fewer clicks</li>"
+        "                <li>Added charactername API function</li>"
+        "                <li>Fixed issues relating to mouse-dragging in Wayland and possibly X11</li>"
+        "                <li>Deprecated vertexxy function in favour of vertextargetxy, vertexscaledxy, and targetscale; this makes it even easier for plugins to support interface scaling</li>"
+        "                <li>Fixed flashwindow not always working on Windows</li>"
+        "            </ul>"
+        "            <p>Launcher:</p>"
+        "            <ul>"
+        "                <li>Added RS and OSRS news items to the launch page - this can be turned off in general settings</li>"
+        "                <li>Made certain buttons more clear that they are buttons</li>"
+        "                <li>The \"configure runelite\" button can now be used without being logged in</li>"
+        "                <li>Fixed a bug causing the launcher to say \"please select a character\" for some people even if a character was selected</li>"
+        "                <li>Fixed a bug where settings sometimes wouldn't be saved between sessions</li>"
+        "            </ul>"
+        "        </description>"
+        "    </release>"
         "    <release version=\"0.20.0\" date=\"2025-09-28\">"
         "        <url type=\"details\">https://github.com/Adamcake/Bolt/releases/tag/0.20.0</url>"
         "        <description>"
