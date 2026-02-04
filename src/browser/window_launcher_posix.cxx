@@ -13,7 +13,7 @@
 #define MAXARGCOUNT 256
 
 #define SETUPCHILD() \
-setpgrp(); \
+setsid(); \
 if (chdir(this->data_dir.c_str())) { \
 	fmt::print("[B] new process was unable to chdir: {}\n", errno); \
 	exit(1); \
