@@ -4,7 +4,9 @@
 #if defined(_WIN32)
 #include <Windows.h>
 #else
+#if defined(__linux__)
 #define _GNU_SOURCE 1
+#endif
 #include <unistd.h>
 #include <sys/mman.h>
 #include <cerrno>
@@ -159,7 +161,12 @@ void Browser::WindowOSR::HandleAck() {
 			if (ftruncate(this->shm, length)) {
 				fmt::print("[B] OnPaint: ftruncate error {}\n", errno);
 			}
+#if defined(__linux__)
 			this->file = mremap(this->file, this->mapping_size, length, MREMAP_MAYMOVE);
+#else
+			munmap(this->file, this->mapping_size);
+			this->file = mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, this->shm, 0);
+#endif
 #endif
 			this->mapping_size = length;
 		}
@@ -327,7 +334,12 @@ void Browser::WindowOSR::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType
 			if (ftruncate(this->shm, length)) {
 				fmt::print("[B] OnPaint: ftruncate error {}\n", errno);
 			}
+#if defined(__linux__)
 			this->file = mremap(this->file, this->mapping_size, length, MREMAP_MAYMOVE);
+#else
+			munmap(this->file, this->mapping_size);
+			this->file = mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED, this->shm, 0);
+#endif
 #endif
 			this->mapping_size = length;
 			memcpy(this->file, buffer, length);

@@ -348,7 +348,79 @@ CefRefPtr<CefResourceRequestHandler> Browser::Launcher::LaunchRs3Exe(CefRefPtr<C
 }
 
 CefRefPtr<CefResourceRequestHandler> Browser::Launcher::LaunchRs3App(CefRefPtr<CefRequest> request, std::string_view query) {
+#if defined(__APPLE__)
+	const CefRefPtr<CefPostData> post_data = request->GetPostData();
+
+	std::string hash;
+	bool has_hash = false;
+	std::string config_uri;
+	bool has_config_uri = false;
+	std::string jx_session_id;
+	bool has_jx_session_id = false;
+	std::string jx_character_id;
+	bool has_jx_character_id = false;
+	std::string jx_display_name;
+	bool has_jx_display_name = false;
+	std::string launch_command;
+	bool has_launch_command = false;
+	ParseQuery(query, [&](const std::string_view& key, const std::string_view& val) {
+		PQSTRING(hash)
+		PQSTRING(config_uri)
+		PQSTRING(jx_session_id)
+		PQSTRING(jx_character_id)
+		PQSTRING(jx_display_name)
+		PQSTRING(launch_command)
+	});
+
+	if (has_hash) {
+		QSENDBADREQUESTIF(!post_data || post_data->GetElementCount() != 1);
+		CefPostData::ElementVector vec;
+		post_data->GetElements(vec);
+		size_t app_size = vec[0]->GetBytesCount();
+		unsigned char* app_data = new unsigned char[app_size];
+		vec[0]->GetBytes(app_size, app_data);
+
+		size_t written = 0;
+		int file = open(this->rs3_app_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0755);
+		if (file == -1) {
+			delete[] app_data;
+			QSENDSTR("Failed to save app; if the game is already running, close it and try again", 500);
+		}
+		while (written < app_size) {
+			written += write(file, app_data + written, app_size - written);
+		}
+		close(file);
+		delete[] app_data;
+	}
+
+	std::string path_str(this->rs3_app_path.c_str());
+	char arg_open[] = "/usr/bin/open";
+	char* args[] = {
+		arg_open,
+		path_str.data(),
+		nullptr,
+	};
+	char** argv = args;
+	char* arg_buffer[MAXARGCOUNT];
+	if (has_launch_command) {
+		QSENDSYSTEMERRORIF(!ResolveLaunchCommand(launch_command.data(), args, arg_buffer));
+		argv = arg_buffer;
+	}
+
+	pid_t pid = fork();
+	if (pid == 0) {
+		SETUPCHILD()
+		close(STDIN_FILENO);
+		if (has_jx_session_id) setenv("JX_SESSION_ID", jx_session_id.data(), true);
+		if (has_jx_character_id) setenv("JX_CHARACTER_ID", jx_character_id.data(), true);
+		if (has_jx_display_name) setenv("JX_DISPLAY_NAME", jx_display_name.data(), true);
+		BoltExec(argv);
+	}
+	fmt::print("[B] Successfully spawned game process with pid {}\n", pid);
+	SAVEANDRETURN(hash, rs3_app_hash_path)
+#else
 	QSENDSTR("Mac binaries are not supported on this platform", 400);
+#endif
 }
 
 CefRefPtr<CefResourceRequestHandler> Browser::Launcher::LaunchOsrsExe(CefRefPtr<CefRequest> request, std::string_view query) {
@@ -438,7 +510,76 @@ CefRefPtr<CefResourceRequestHandler> Browser::Launcher::LaunchOsrsExe(CefRefPtr<
 }
 
 CefRefPtr<CefResourceRequestHandler> Browser::Launcher::LaunchOsrsApp(CefRefPtr<CefRequest> request, std::string_view query) {
+#if defined(__APPLE__)
+	const CefRefPtr<CefPostData> post_data = request->GetPostData();
+
+	std::string hash;
+	bool has_hash = false;
+	std::string jx_session_id;
+	bool has_jx_session_id = false;
+	std::string jx_character_id;
+	bool has_jx_character_id = false;
+	std::string jx_display_name;
+	bool has_jx_display_name = false;
+	std::string launch_command;
+	bool has_launch_command = false;
+	ParseQuery(query, [&](const std::string_view& key, const std::string_view& val) {
+		PQSTRING(hash)
+		PQSTRING(jx_session_id)
+		PQSTRING(jx_character_id)
+		PQSTRING(jx_display_name)
+		PQSTRING(launch_command)
+	});
+
+	if (has_hash) {
+		QSENDBADREQUESTIF(!post_data || post_data->GetElementCount() != 1);
+		CefPostData::ElementVector vec;
+		post_data->GetElements(vec);
+		size_t app_size = vec[0]->GetBytesCount();
+		unsigned char* app_data = new unsigned char[app_size];
+		vec[0]->GetBytes(app_size, app_data);
+
+		size_t written = 0;
+		int file = open(this->osrs_app_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0755);
+		if (file == -1) {
+			delete[] app_data;
+			QSENDSTR("Failed to save app; if the game is already running, close it and try again", 500);
+		}
+		while (written < app_size) {
+			written += write(file, app_data + written, app_size - written);
+		}
+		close(file);
+		delete[] app_data;
+	}
+
+	std::string path_str(this->osrs_app_path.c_str());
+	char arg_open[] = "/usr/bin/open";
+	char* args[] = {
+		arg_open,
+		path_str.data(),
+		nullptr,
+	};
+	char** argv = args;
+	char* arg_buffer[MAXARGCOUNT];
+	if (has_launch_command) {
+		QSENDSYSTEMERRORIF(!ResolveLaunchCommand(launch_command.data(), args, arg_buffer));
+		argv = arg_buffer;
+	}
+
+	pid_t pid = fork();
+	if (pid == 0) {
+		SETUPCHILD()
+		close(STDIN_FILENO);
+		if (has_jx_session_id) setenv("JX_SESSION_ID", jx_session_id.data(), true);
+		if (has_jx_character_id) setenv("JX_CHARACTER_ID", jx_character_id.data(), true);
+		if (has_jx_display_name) setenv("JX_DISPLAY_NAME", jx_display_name.data(), true);
+		BoltExec(argv);
+	}
+	fmt::print("[B] Successfully spawned game process with pid {}\n", pid);
+	SAVEANDRETURN(hash, osrs_app_hash_path)
+#else
 	QSENDSTR("Mac binaries are not supported on this platform", 400);
+#endif
 }
 
 CefRefPtr<CefResourceRequestHandler> Browser::Launcher::LaunchRuneliteJar(CefRefPtr<CefRequest> request, std::string_view query, bool configure) {
@@ -624,18 +765,29 @@ CefRefPtr<CefResourceRequestHandler> Browser::Launcher::LaunchHdosJar(CefRefPtr<
 }
 
 void Browser::Launcher::OpenExternalUrl(char* url) const {
+#if defined(__APPLE__)
+	char arg_open[] = "/usr/bin/open";
+	char* argv[] { arg_open, url, nullptr };
+#else
 	char arg_env[] = "/usr/bin/env";
 	char arg_xdg_open[] = "xdg-open";
 	char* argv[] { arg_env, arg_xdg_open, url, nullptr };
+#endif
 	pid_t pid = fork();
 	if (pid == 0) BoltExec(argv);
 }
 
 bool BrowseFile(const std::filesystem::path& dir) {
+#if defined(__APPLE__)
+	char arg_open[] = "/usr/bin/open";
+	std::string p = dir;
+	char* argv[] { arg_open, p.data(), nullptr };
+#else
 	char arg_env[] = "/usr/bin/env";
 	char arg_xdg_open[] = "xdg-open";
 	std::string p = dir;
 	char* argv[] { arg_env, arg_xdg_open, p.data(), nullptr };
+#endif
 	pid_t pid = fork();
 	if (pid == 0) BoltExec(argv);
 	return pid > 0;

@@ -1,4 +1,5 @@
 #include "app.hxx"
+#include "include/cef_command_line.h"
 #include "include/cef_process_message.h"
 #include "include/cef_v8.h"
 #include "include/cef_values.h"
@@ -226,7 +227,13 @@ bool Browser::App::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRe
 					shm_fd = shm_open(path.c_str(), O_RDWR, 0644);
 					shm_file = mmap(NULL, size, PROT_READ, MAP_SHARED, shm_fd, 0);
 				} else if (shm_inited) {
+#if defined(__linux__)
 					shm_file = mremap(shm_file, shm_length, size, MREMAP_MAYMOVE);
+#else
+					munmap(shm_file, shm_length);
+					if (ftruncate(shm_fd, size)) { return true; }
+					shm_file = mmap(NULL, size, PROT_READ, MAP_SHARED, shm_fd, 0);
+#endif
 				} else {
 					// shm not set up and wasn't provided with enough information to do setup - shouldn't happen
 					return true;
@@ -309,6 +316,19 @@ bool Browser::App::Execute(const CefString&, CefRefPtr<CefV8Value>, const CefV8V
 	return true;
 }
 
-void Browser::App::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar) {	
+void Browser::App::OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar) {
 	registrar->AddCustomScheme("plugin", CEF_SCHEME_OPTION_CORS_ENABLED | CEF_SCHEME_OPTION_SECURE | CEF_SCHEME_OPTION_CSP_BYPASSING | CEF_SCHEME_OPTION_FETCH_ENABLED);
+}
+
+void Browser::App::OnBeforeCommandLineProcessing(const CefString&, CefRefPtr<CefCommandLine> command_line) {
+#if defined(__APPLE__)
+	// Use Metal via ANGLE for GPU rendering on macOS. The default GPU backend
+	// causes a crash in CEF's Fontations font renderer during event processing.
+	if (!command_line->HasSwitch("use-gl")) {
+		command_line->AppendSwitchWithValue("use-gl", "angle");
+	}
+	if (!command_line->HasSwitch("use-angle")) {
+		command_line->AppendSwitchWithValue("use-angle", "metal");
+	}
+#endif
 }

@@ -19,10 +19,22 @@
 #include "browser/app.hxx"
 #include "browser/client.hxx"
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
 #include <fcntl.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#endif
+
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+static std::filesystem::path GetExecutablePath() {
+	char path[4096];
+	uint32_t size = sizeof(path);
+	if (_NSGetExecutablePath(path, &size) == 0) {
+		return std::filesystem::canonical(path);
+	}
+	return {};
+}
 #endif
 
 #if defined(CEF_X11)
@@ -85,6 +97,26 @@ int BoltRunBrowserProcess(CefMainArgs main_args, CefRefPtr<Browser::App> cef_app
 	settings.log_severity = LOGSEVERITY_WARNING; // Print warnings and errors only
 	settings.command_line_args_disabled = false; // Needed because we append args
 	settings.uncaught_exception_stack_size = 8;  // Number of call stack frames given in unhandled exception events
+#if defined(__APPLE__)
+	settings.no_sandbox = true;
+	{
+		auto exe_path = GetExecutablePath();
+		// exe is at .app/Contents/MacOS/bolt
+		auto contents_path = exe_path.parent_path().parent_path();
+		// Helper subprocess is at .app/Contents/Frameworks/Bolt Helper.app/Contents/MacOS/Bolt Helper
+		auto helper_path = contents_path / "Frameworks" / "Bolt Helper.app" / "Contents" / "MacOS" / "Bolt Helper";
+		const char* helper_cstr = helper_path.c_str();
+		cef_string_from_utf8(helper_cstr, strlen(helper_cstr), &settings.browser_subprocess_path);
+		// Framework is at .app/Contents/Frameworks/
+		auto framework_path = contents_path / "Frameworks" / "Chromium Embedded Framework.framework";
+		const char* fw_cstr = framework_path.c_str();
+		cef_string_from_utf8(fw_cstr, strlen(fw_cstr), &settings.framework_dir_path);
+		// main_bundle_path should point to the .app directory
+		auto bundle_path = contents_path.parent_path();
+		const char* mb_cstr = bundle_path.c_str();
+		cef_string_from_utf8(mb_cstr, strlen(mb_cstr), &settings.main_bundle_path);
+	}
+#endif
 #if defined(BOLT_RESOURCES_PATH)
 	cef_string_from_utf8(BOLT_RESOURCES_PATH, sizeof(BOLT_RESOURCES_PATH) - sizeof(*BOLT_RESOURCES_PATH), &settings.resources_dir_path);
 #endif
@@ -152,6 +184,74 @@ void BoltFailToObtainLockfile(std::filesystem::path tempdir) {
 #endif
 	fmt::print("Failed to obtain lockfile; is the program already running?\n");
 }
+
+#if defined(__APPLE__)
+#include "include/wrapper/cef_library_loader.h"
+
+// Defined in cocoa_init_mac.mm - initializes NSApplication with CefAppProtocol
+extern "C" void BoltInitCocoa();
+
+int main(int argc, char* argv[]) {
+	// Initialize NSApplication with CefAppProtocol before loading CEF.
+	// This is required by CEF on macOS for proper Cocoa event handling.
+	BoltInitCocoa();
+
+	CefScopedLibraryLoader library_loader;
+	if (!library_loader.LoadInMain()) {
+		fmt::print("Failed to load CEF framework\n");
+		return 1;
+	}
+	CefMainArgs main_args(argc, argv);
+	int ret = BoltRunAnyProcess(main_args);
+	return ret;
+}
+
+bool LockXdgDirectories(std::filesystem::path& config_dir, std::filesystem::path& data_dir, std::filesystem::path& runtime_dir) {
+	const char* home = getenv("HOME");
+	if (!home || !*home) {
+		fmt::print("No $HOME set, please set one\n");
+		return false;
+	}
+
+	data_dir.assign(home);
+	data_dir.append("Library");
+	data_dir.append("Application Support");
+	data_dir.append(PROGRAM_DIRNAME);
+
+	config_dir = data_dir;
+	config_dir.append("config");
+
+	runtime_dir = data_dir;
+	runtime_dir.append("run");
+
+	std::error_code err;
+	std::filesystem::create_directories(config_dir, err);
+	if (err.value() != 0) {
+		fmt::print("Could not create config directories (error {}) {}\n", err.value(), config_dir.c_str());
+		return false;
+	}
+	std::filesystem::create_directories(data_dir, err);
+	if (err.value() != 0) {
+		fmt::print("Could not create data directories (error {}) {}\n", err.value(), data_dir.c_str());
+		return false;
+	}
+	std::filesystem::create_directories(runtime_dir, err);
+	if (err.value() != 0) {
+		fmt::print("Could not create runtime directory (error {}) {}\n", err.value(), runtime_dir.c_str());
+		return false;
+	}
+
+	std::filesystem::path data_lock = runtime_dir;
+	data_lock.append("lock");
+	int lockfile = open(data_lock.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0600);
+	if (flock(lockfile, LOCK_EX | LOCK_NB)) {
+		BoltFailToObtainLockfile(runtime_dir);
+		return false;
+	} else {
+		return true;
+	}
+}
+#endif
 
 #if defined(__linux__)
 int main(int argc, char* argv[]) {

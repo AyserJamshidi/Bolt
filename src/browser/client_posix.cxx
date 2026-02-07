@@ -58,8 +58,10 @@ void Browser::Client::IPCRun() {
 			BoltSocketType client_fd = 
 #if defined(_WIN32)
 				accept(this->ipc_fd, nullptr, nullptr);
-#else
+#elif defined(__linux__)
 				accept4(this->ipc_fd, nullptr, nullptr, SOCK_CLOEXEC);
+#else
+				accept(this->ipc_fd, nullptr, nullptr);
 #endif
 			if (client_fd == -1) {
 				fmt::print("[I] IPC thread exiting due to accept error {}\n", errno);

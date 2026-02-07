@@ -26,6 +26,7 @@ namespace Browser {
 		void OnLoadError(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, ErrorCode, const CefString&, const CefString&) override;
 		bool Execute(const CefString&, CefRefPtr<CefV8Value>, const CefV8ValueList&, CefRefPtr<CefV8Value>&, CefString&) override;
 		void OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar>) override;
+		void OnBeforeCommandLineProcessing(const CefString&, CefRefPtr<CefCommandLine>) override;
 
 		App(const App&) = delete;
 		App& operator=(const App&) = delete;
