@@ -121,7 +121,13 @@ Run bolt.exe from the install location.
 
 ### Mac
 
-Not yet supported
+```
+cmake --preset macos-release
+cmake --build build
+cmake --install build --prefix build
+```
+
+Run `./build/opt/Bolt.app/Contents/MacOS/bolt` from the install location
 
 ## Maintenance
 When doing the initial cmake setup step, the following options exist which you may find useful. These are to be used for local development only.
