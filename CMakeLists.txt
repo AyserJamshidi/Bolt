@@ -389,18 +389,29 @@ if(NOT WIN32)
     if(NOT BOLT_SKIP_LIBRARIES)
         set(BOLT_PLUGIN_LIB_EXPORT "export LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/${BOLT_LIBDIR}\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}")
     endif()
-    string(JOIN "\n" BOLT_STAGING_SCRIPT
-        "#!/bin/sh -eu"
-        "# This is a helper script for running a staging build, i.e. a build that has been installed in this directory."
-        "# This script will not be installed anywhere by `cmake --install`, as it's for development/staging purposes only."
-        "${BOLT_PLUGIN_LIB_EXPORT}"
-        "export XDG_DATA_DIRS=${CMAKE_CURRENT_BINARY_DIR}/${BOLT_SHAREDIR}\${XDG_DATA_DIRS:+:\${XDG_DATA_DIRS}}"
-        "export XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config"
-        "export XDG_DATA_HOME=${CMAKE_CURRENT_BINARY_DIR}/data"
-        "cd ${CMAKE_CURRENT_BINARY_DIR}/${BOLT_CEF_INSTALLDIR}/bolt-launcher"
-        "exec ./${BOLT_EXE_NAME} \"$@\""
-        ""
-    )
+    if(APPLE)
+        string(JOIN "\n" BOLT_STAGING_SCRIPT
+            "#!/bin/sh -eu"
+            "# This is a helper script for running a staging build, i.e. a build that has been installed in this directory."
+            "# This script will not be installed anywhere by `cmake --install`, as it's for development/staging purposes only."
+            "cd ${CMAKE_CURRENT_BINARY_DIR}/${BOLT_CEF_INSTALLDIR}/Bolt.app/Contents/MacOS"
+            "exec ./${BOLT_EXE_NAME} \"$@\""
+            ""
+        )
+    else()
+        string(JOIN "\n" BOLT_STAGING_SCRIPT
+            "#!/bin/sh -eu"
+            "# This is a helper script for running a staging build, i.e. a build that has been installed in this directory."
+            "# This script will not be installed anywhere by `cmake --install`, as it's for development/staging purposes only."
+            "${BOLT_PLUGIN_LIB_EXPORT}"
+            "export XDG_DATA_DIRS=${CMAKE_CURRENT_BINARY_DIR}/${BOLT_SHAREDIR}\${XDG_DATA_DIRS:+:\${XDG_DATA_DIRS}}"
+            "export XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config"
+            "export XDG_DATA_HOME=${CMAKE_CURRENT_BINARY_DIR}/data"
+            "cd ${CMAKE_CURRENT_BINARY_DIR}/${BOLT_CEF_INSTALLDIR}/bolt-launcher"
+            "exec ./${BOLT_EXE_NAME} \"$@\""
+            ""
+        )
+    endif()
     file(GENERATE OUTPUT bolt.sh CONTENT ${BOLT_STAGING_SCRIPT} FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 endif()
 
@@ -451,6 +462,9 @@ if(WIN32)
 else()
     set(WINDOW_LAUNCHER_OS_SPECIFIC src/browser/window_launcher_posix.cxx)
 endif()
+if(APPLE)
+    set(BOLT_COCOA_INIT_SRC src/browser/cocoa_init_mac.mm)
+endif()
 
 # compile an auto-generator, then use it to auto-generate a C++ file containing icon data
 set(BOLT_ICON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/icon")
@@ -484,7 +498,7 @@ add_executable("${BOLT_EXE_NAME}"
     ${WINDOW_LAUNCHER_OS_SPECIFIC} src/mime.cxx src/file_manager/directory.cxx client_cmake_gen.cxx
     "${LIBRARY_IPC_OS_SPECIFIC}" ${BOLT_FILE_MANAGER_LAUNCHER_GEN} ${BOLT_STUB_INJECT_CXX}
     src/browser/window_osr.cxx src/browser/window_plugin.cxx src/browser/window_plugin_requests.cxx
-    src/browser/request.cxx
+    src/browser/request.cxx ${BOLT_COCOA_INIT_SRC}
 )
 if(BOLT_STUB_INJECT_CXX)
     add_dependencies("${BOLT_EXE_NAME}" BOLT_STUB_INJECT_DEPENDENCY)
@@ -555,7 +569,36 @@ elseif(WIN32)
         target_include_directories("${BOLT_EXE_NAME}" PUBLIC "${BOLT_LIBARCHIVE_DIR}/include")
     endif()
 elseif(APPLE)
-    # TODO: mac support
+    if(NOT BOLT_SKIP_RPATH)
+        set_target_properties("${BOLT_EXE_NAME}" PROPERTIES
+            INSTALL_RPATH "@executable_path"
+            BUILD_WITH_INSTALL_RPATH TRUE
+        )
+    endif()
+
+    # On macOS, CEF is loaded dynamically via CefScopedLibraryLoader, not linked directly.
+    # The libcef_dll_wrapper provides the dynamic stubs (libcef_dll_dylib.cc).
+
+    find_package(PkgConfig REQUIRED)
+
+    set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:/opt/homebrew/opt/libarchive/lib/pkgconfig:/usr/local/opt/libarchive/lib/pkgconfig")
+    pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
+    target_link_libraries("${BOLT_EXE_NAME}" PUBLIC PkgConfig::LIBARCHIVE)
+    target_link_libraries("${BOLT_EXE_NAME}" PUBLIC "-framework AppKit" "-framework Cocoa")
+    target_compile_definitions("${BOLT_EXE_NAME}" PUBLIC HAS_LIBARCHIVE BOLT_WINDOW_CLASS="${BOLT_META_NAME}" BOLT_EXE_NAME="${BOLT_EXE_NAME}")
+endif()
+
+# Build macOS helper subprocess executable (needed for CEF GPU/Renderer/etc subprocesses)
+if(APPLE)
+    add_executable(bolt_helper src/process_helper_mac.cxx src/browser/app.cxx)
+    target_include_directories(bolt_helper PUBLIC ${BOLT_CEF_INCLUDEPATH})
+    set_target_properties(bolt_helper PROPERTIES CXX_STANDARD 20 CXX_EXTENSIONS OFF OUTPUT_NAME "Bolt Helper")
+    if(BOLT_CEF_DLLWRAPPER)
+        target_link_libraries(bolt_helper PUBLIC "${BOLT_CEF_DLLWRAPPER}")
+    else()
+        target_link_libraries(bolt_helper PUBLIC libcef_dll_wrapper)
+    endif()
+    add_dependencies("${BOLT_EXE_NAME}" bolt_helper)
 endif()
 
 # compilation setting for enabling chromium dev tools
@@ -577,7 +620,122 @@ endif()
 
 # Install commands for target dir layout - as per https://bitbucket.org/chromiumembedded/cef/wiki/Tutorial.md
 if(APPLE)
-    # TODO: mac support
+    set(BOLT_APP_BUNDLE "Bolt.app")
+    install(TARGETS "${BOLT_EXE_NAME}" DESTINATION "${BOLT_CEF_INSTALLDIR}/${BOLT_APP_BUNDLE}/Contents/MacOS")
+    if(NOT BOLT_CEF_RESOURCEDIR_OVERRIDE)
+        install(DIRECTORY "${CEF_ROOT}/Release/Chromium Embedded Framework.framework"
+                DESTINATION "${BOLT_CEF_INSTALLDIR}/${BOLT_APP_BUNDLE}/Contents/Frameworks"
+                USE_SOURCE_PERMISSIONS)
+    endif()
+    # Generate Info.plist for main app bundle
+    string(JOIN "\n" BOLT_MACOS_PLIST
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+        "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">"
+        "<plist version=\"1.0\">"
+        "<dict>"
+        "    <key>CFBundleDevelopmentRegion</key>"
+        "    <string>en</string>"
+        "    <key>CFBundleExecutable</key>"
+        "    <string>${BOLT_EXE_NAME}</string>"
+        "    <key>CFBundleIdentifier</key>"
+        "    <string>${BOLT_META_NAME}</string>"
+        "    <key>CFBundleName</key>"
+        "    <string>Bolt Launcher</string>"
+        "    <key>CFBundleDisplayName</key>"
+        "    <string>Bolt Launcher</string>"
+        "    <key>CFBundlePackageType</key>"
+        "    <string>APPL</string>"
+        "    <key>CFBundleVersion</key>"
+        "    <string>${CMAKE_PROJECT_VERSION}</string>"
+        "    <key>CFBundleShortVersionString</key>"
+        "    <string>${CMAKE_PROJECT_VERSION}</string>"
+        "    <key>LSEnvironment</key>"
+        "    <dict>"
+        "        <key>MallocNanoZone</key>"
+        "        <string>0</string>"
+        "    </dict>"
+        "    <key>LSMinimumSystemVersion</key>"
+        "    <string>12.0</string>"
+        "    <key>NSHighResolutionCapable</key>"
+        "    <true/>"
+        "    <key>NSSupportsAutomaticGraphicsSwitching</key>"
+        "    <true/>"
+        "</dict>"
+        "</plist>"
+        ""
+    )
+    file(GENERATE OUTPUT Info.plist CONTENT "${BOLT_MACOS_PLIST}")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/Info.plist" DESTINATION "${BOLT_CEF_INSTALLDIR}/${BOLT_APP_BUNDLE}/Contents")
+
+    # Install helper app bundles for CEF subprocesses (GPU, Renderer, Plugin, Alerts)
+    # Each subprocess type needs its own .app bundle inside Frameworks/ with a unique bundle ID.
+    set(BOLT_HELPER_APP_SUFFIXES
+        "::"
+        " (Alerts):_alerts:.alerts"
+        " (GPU):_gpu:.gpu"
+        " (Plugin):_plugin:.plugin"
+        " (Renderer):_renderer:.renderer"
+    )
+    foreach(_suffix_list ${BOLT_HELPER_APP_SUFFIXES})
+        string(REPLACE ":" ";" _suffix_list ${_suffix_list})
+        list(GET _suffix_list 0 _name_suffix)
+        list(GET _suffix_list 1 _target_suffix)
+        list(GET _suffix_list 2 _plist_suffix)
+
+        set(_helper_name "Bolt Helper${_name_suffix}")
+        set(_helper_app_dir "${BOLT_CEF_INSTALLDIR}/${BOLT_APP_BUNDLE}/Contents/Frameworks/${_helper_name}.app")
+
+        # Install helper binary with the correct name for this variant
+        install(PROGRAMS "$<TARGET_FILE:bolt_helper>"
+                DESTINATION "${_helper_app_dir}/Contents/MacOS"
+                RENAME "${_helper_name}")
+
+        # Generate and install helper Info.plist
+        string(JOIN "\n" _helper_plist
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            "<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">"
+            "<plist version=\"1.0\">"
+            "<dict>"
+            "    <key>CFBundleDevelopmentRegion</key>"
+            "    <string>en</string>"
+            "    <key>CFBundleDisplayName</key>"
+            "    <string>${_helper_name}</string>"
+            "    <key>CFBundleExecutable</key>"
+            "    <string>${_helper_name}</string>"
+            "    <key>CFBundleIdentifier</key>"
+            "    <string>${BOLT_META_NAME}.helper${_plist_suffix}</string>"
+            "    <key>CFBundleInfoDictionaryVersion</key>"
+            "    <string>6.0</string>"
+            "    <key>CFBundleName</key>"
+            "    <string>${_helper_name}</string>"
+            "    <key>CFBundlePackageType</key>"
+            "    <string>APPL</string>"
+            "    <key>CFBundleVersion</key>"
+            "    <string>${CMAKE_PROJECT_VERSION}</string>"
+            "    <key>CFBundleShortVersionString</key>"
+            "    <string>${CMAKE_PROJECT_VERSION}</string>"
+            "    <key>LSEnvironment</key>"
+            "    <dict>"
+            "        <key>MallocNanoZone</key>"
+            "        <string>0</string>"
+            "    </dict>"
+            "    <key>LSFileQuarantineEnabled</key>"
+            "    <true/>"
+            "    <key>LSMinimumSystemVersion</key>"
+            "    <string>12.0</string>"
+            "    <key>LSUIElement</key>"
+            "    <string>1</string>"
+            "    <key>NSSupportsAutomaticGraphicsSwitching</key>"
+            "    <true/>"
+            "</dict>"
+            "</plist>"
+            ""
+        )
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/helper-Info${_target_suffix}.plist" "${_helper_plist}")
+        install(FILES "${CMAKE_CURRENT_BINARY_DIR}/helper-Info${_target_suffix}.plist"
+                DESTINATION "${_helper_app_dir}/Contents"
+                RENAME "Info.plist")
+    endforeach()
 else()
     install(TARGETS "${BOLT_EXE_NAME}" DESTINATION "${BOLT_CEF_INSTALLDIR}/bolt-launcher")
     if(NOT BOLT_CEF_RESOURCEDIR_OVERRIDE)

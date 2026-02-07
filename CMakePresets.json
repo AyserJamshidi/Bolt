@@ -98,6 +98,22 @@
         "BOLT_DEV_SHOW_DEVTOOLS": "1",
         "BOLT_DEV_LAUNCHER_DIRECTORY": "1"
       }
+    },
+    {
+      "name": "macos-release",
+      "displayName": "macOS Release",
+      "description": "Configure a Release build for macOS with Ninja.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
+        "BOLT_SKIP_LIBRARIES": "1",
+        "USE_SANDBOX": "OFF"
+      }
     }
   ],
   "buildPresets": [
@@ -141,6 +157,12 @@
       "name": "clang-app",
       "displayName": "Build Clang: Frontend with DevTools",
       "configurePreset": "clang-app",
+      "targets": ["install"]
+    },
+    {
+      "name": "macos-release",
+      "displayName": "Build macOS Release",
+      "configurePreset": "macos-release",
       "targets": ["install"]
     }
   ]
